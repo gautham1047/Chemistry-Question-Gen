@@ -68,7 +68,7 @@ This file also contains numerous helper functions for:
 *   Handling chemical units and random value generation (`randUnit`, `randTemp`, `randPressure`).
 *   Performing chemistry-specific calculations like electron configurations and quantum numbers.
 
-### Available Problem Types:
+## Available Problem Types:
 
 **Unit 1: Foundations of Chemistry**
 * SI Unit & Prefix Conversions

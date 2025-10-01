@@ -17,12 +17,13 @@ This file is the original, terminal-based entry point for the application. It pr
 **Key Features:**
 
 *   **Main Interaction Loop**: An infinite `while True` loop continuously prompts the user for input, allowing them to select problem types or change settings until they decide to exit.
+    * Type `break` to exit a problem
 *   **Problem Selection**:
     *   Users can enter a number corresponding to a specific problem type from a predefined list (`modeList`).
     *   Typing `random` or `r` selects a random problem from the currently active set.
     *   Typing `0` displays a table of contents with all available problem modes.
 *   **Settings Menu**:
-    *   Accessible by typing `settings`.
+    *   Accessible by typing `settings` or `-1`.
     *   Allows customization of the problem generation, including:
         *   **Molecule Frequency**: Adjusts the likelihood of different compound types (e.g., ionic, acid, binary) appearing.
         *   **Reaction Types**: Filters the types of chemical reactions for relevant problems.

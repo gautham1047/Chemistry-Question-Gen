@@ -56,7 +56,7 @@ while True:
                 selected = random.choice(randomChoices)
                 randomSelected = True
                 break
-            if selected == "break": 
+            if selected == "break" or selected == "b": 
                 b = True
                 break
             elif selected == "settings" or selected == "-1":
@@ -105,7 +105,7 @@ while True:
                 if choices == "break": break
                 if choices == "-1":
                     presets = {"difficult" : [0, 4, 5, 11, 12, 13, 28, 31, 35, 42, 43, 44, 45], 
-                                "ates\ites" : [0, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45],
+                                "-ates + -ites" : [0, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45],
                                 "all" : [i for i in range(0,len(list(polyatomicIons.keys())))]}
                     for i, preset in enumerate(list(presets.keys())): print(f"{i+1}. {preset} : {presets.get(preset)}")
                     choices = list(presets.values())[int(input("Choose a preset: ")) -1]

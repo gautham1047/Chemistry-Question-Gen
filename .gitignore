@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# VSCode
+.vscode/
+
+# Test files
+chemTest.py
+otherChemTest.py
+otherOtherChemTest.py
+flaskTest.py

@@ -1,3 +1,5 @@
+# Just a thought experiment on a more efficient way to code the atomsInCompound function
+# It works most of the time, but the current implementation (although much longer and more verbose) is more consistent
 def atomsInCompound(equation : str):
     if len(equation) == 0: return {}
 

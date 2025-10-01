@@ -6,6 +6,37 @@ The application is accessible through two main interfaces:
 1.  A Command-Line Interface (CLI) for a classic, terminal-based experience.
 2.  A Flask-based web application for a more modern, user-friendly graphical interface.
 
+## Setup and Installation
+
+To run this project, you need to have Python installed on your system. Once Python is set up, you can install the necessary dependencies.
+
+### Dependencies
+
+This project relies on the following Python libraries:
+
+*   **Flask**: For the web application interface.
+*   **NumPy**: For numerical operations.
+*   **SymPy**: Used for symbolic mathematics, primarily for balancing chemical equations.
+*   **Inflect**: For converting between the numbers and their words (1 -> 'one')
+
+You can install all the required packages by running the following command in your terminal:
+
+```bash
+pip install flask numpy sympy inflect
+```
+
+### Running the Application
+
+**To run the Command-Line Interface (CLI):**
+```bash
+python chem.py
+```
+
+**To run the Web Application:**
+```bash
+python chemFlask.py
+```
+
 ## Core Components
 
 The codebase is structured into several key files, each with a specific responsibility. The main logic is separated into generating problems, handling chemistry-specific data and functions, and presenting the problems to the user.

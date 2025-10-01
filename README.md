@@ -68,3 +68,69 @@ This file also contains numerous helper functions for:
 *   Handling chemical units and random value generation (`randUnit`, `randTemp`, `randPressure`).
 *   Performing chemistry-specific calculations like electron configurations and quantum numbers.
 
+**Available Problem Types:**
+
+Unit 1: Foundations of Chemistry
+* SI Unit & Prefix Conversions
+* Isotope Abundance & Average Atomic Mass
+* Nomenclature: Name-to-Formula and Formula-to-Name for Ionic, Covalent, and Acidic compounds.
+  
+Unit 2: Stoichiometry
+* Mole-Gram-Particle-Volume Conversions
+* Percent Composition
+* Empirical & Molecular Formula Determination
+* Mass of an Element in a Compound
+  
+Unit 3: Reactions
+* Predicting Products & Balancing Equations (Synthesis, Decomposition, Combustion, Single/Double Replacement)
+* Reaction Stoichiometry
+* Limiting Reagent, Theoretical Yield, and Percent Yield
+* Net Ionic Equations & Solubility
+  
+Unit 4: Thermochemistry
+* Calorimetry & Heating/Cooling Curves (q=mcΔT, phase changes)
+* Enthalpy of Reaction (from Heats of Formation or Bond Energies)
+  
+Unit 5: Gases
+* Kinetic Energy of Gases
+* Graham's Law of Effusion
+* Ideal Gas Law & Combined Gas Law
+* Gas Stoichiometry (Could throw some errors - WIP)
+  
+Unit 6: Quantum Mechanics & Periodicity
+* Electron Configuration (Full & Noble Gas)
+* Paramagnetism & Diamagnetism
+* Quantum Numbers
+* Wave Calculations (E=hν, c=λν)
+* Bohr Model & DeBroglie Wavelength
+* Heisenberg Uncertainty Principle
+* Periodic Trends (Atomic Size, Ionization Energy, Electronegativity)
+  
+Unit 7: Bonding
+* Lattice Energy
+* Lewis Dot Structures
+* VSEPR Theory (Electron/Molecular Geometry, Bond Angles, Polarity, Hybridization)
+* Sigma & Pi Bonds
+* Bond Order & Bond Energy
+
+Unit 8: Solutions & Colligative Properties
+* Solubility Curves & Saturation
+* Molarity, Molality, and Dilutions
+* Colligative Properties: Boiling Point Elevation & Freezing Point Depression
+* Henry's Law
+* Stoichiometry in Aqueous Solutions
+
+Unit 9: Acids & Bases
+* pH/pOH/[H+]/[OH-] Conversions
+* Weak Acid/Base Equilibria (Ka, Kb)
+* Common Ion Effect
+* Neutralization & Titration Calculations
+
+Unit 10: Redox & Electrochemistry (All WIP)
+* Assigning Oxidation Numbers
+* Electroplating Calculations (Current, Time, Mass)
+
+Unit 11: Nuclear Chemistry
+* Predicting Products of Nuclear Decay (Alpha, Beta, Positron)
+
+

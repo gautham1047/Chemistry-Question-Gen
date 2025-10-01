@@ -1,7 +1,10 @@
 def atomsInCompound(equation : str):
     if len(equation) == 0: return {}
+
     if checkLast(equation): return {equation : 1}
+
     if equation[-1].isnumeric() and checkLast(equation[:-1]): return {equation[:-1] : int(equation[-1])}
+
     if equation[:5] == "(NH4)":
         factor = int(equation[5])
         curr_batch = {"N" : factor, "H" : 4 * factor}
@@ -26,8 +29,6 @@ def atomsInCompound(equation : str):
     for i in to_delete: del next_batch[i]
     ret.update(next_batch)
     return ret
-
-# NH4 is not accounted for
 
 def checkLast(equation : str): return len(equation) == 1 or (equation[-1].islower() and len(equation) == 2)
 

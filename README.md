@@ -6,6 +6,37 @@ The application is accessible through two main interfaces:
 1.  A Command-Line Interface (CLI) for a classic, terminal-based experience.
 2.  A Flask-based web application for a more modern, user-friendly graphical interface.
 
+## Setup and Installation
+
+To run this project, you need to have Python installed on your system. Once Python is set up, you can install the necessary dependencies.
+
+### Dependencies
+
+This project relies on the following Python libraries:
+
+*   **Flask**: For the web application interface.
+*   **NumPy**: For numerical operations.
+*   **SymPy**: Used for symbolic mathematics, primarily for balancing chemical equations.
+*   **Inflect**: For converting between the numbers and their words (1 -> 'one')
+
+You can install all the required packages by running the following command in your terminal:
+
+```bash
+pip install flask numpy sympy inflect
+```
+
+### Running the Application
+
+**To run the Command-Line Interface (CLI):**
+```bash
+python chem.py
+```
+
+**To run the Web Application:**
+```bash
+python chemFlask.py
+```
+
 ## Core Components
 
 The codebase is structured into several key files, each with a specific responsibility. The main logic is separated into generating problems, handling chemistry-specific data and functions, and presenting the problems to the user.
@@ -17,12 +48,13 @@ This file is the original, terminal-based entry point for the application. It pr
 **Key Features:**
 
 *   **Main Interaction Loop**: An infinite `while True` loop continuously prompts the user for input, allowing them to select problem types or change settings until they decide to exit.
+    * Type `break` to exit a problem
 *   **Problem Selection**:
     *   Users can enter a number corresponding to a specific problem type from a predefined list (`modeList`).
     *   Typing `random` or `r` selects a random problem from the currently active set.
     *   Typing `0` displays a table of contents with all available problem modes.
 *   **Settings Menu**:
-    *   Accessible by typing `settings`.
+    *   Accessible by typing `settings` or `-1`.
     *   Allows customization of the problem generation, including:
         *   **Molecule Frequency**: Adjusts the likelihood of different compound types (e.g., ionic, acid, binary) appearing.
         *   **Reaction Types**: Filters the types of chemical reactions for relevant problems.
@@ -67,4 +99,70 @@ This file also contains numerous helper functions for:
 *   Generating random compounds, elements, and reaction types (`getRandomCompound`, `randElement`, `randomRx`).
 *   Handling chemical units and random value generation (`randUnit`, `randTemp`, `randPressure`).
 *   Performing chemistry-specific calculations like electron configurations and quantum numbers.
+
+## Available Problem Types:
+
+**Unit 1: Foundations of Chemistry**
+* SI Unit & Prefix Conversions
+* Isotope Abundance & Average Atomic Mass
+* Nomenclature: Name-to-Formula and Formula-to-Name for Ionic, Covalent, and Acidic compounds.
+  
+**Unit 2: Stoichiometry**
+* Mole-Gram-Particle-Volume Conversions
+* Percent Composition
+* Empirical & Molecular Formula Determination
+* Mass of an Element in a Compound
+  
+**Unit 3: Reactions**
+* Predicting Products & Balancing Equations (Synthesis, Decomposition, Combustion, Single/Double Replacement)
+* Reaction Stoichiometry
+* Limiting Reagent, Theoretical Yield, and Percent Yield
+* Net Ionic Equations & Solubility
+  
+**Unit 4: Thermochemistry**
+* Calorimetry & Heating/Cooling Curves (q=mcΔT, phase changes)
+* Enthalpy of Reaction (from Heats of Formation or Bond Energies)
+  
+**Unit 5: Gases**
+* Kinetic Energy of Gases
+* Graham's Law of Effusion
+* Ideal Gas Law & Combined Gas Law
+* Gas Stoichiometry (Could throw some errors - WIP)
+  
+**Unit 6: Quantum Mechanics & Periodicity**
+* Electron Configuration (Full & Noble Gas)
+* Paramagnetism & Diamagnetism
+* Quantum Numbers
+* Wave Calculations (E=hν, c=λν)
+* Bohr Model & DeBroglie Wavelength
+* Heisenberg Uncertainty Principle
+* Periodic Trends (Atomic Size, Ionization Energy, Electronegativity)
+  
+**Unit 7: Bonding**
+* Lattice Energy
+* Lewis Dot Structures
+* VSEPR Theory (Electron/Molecular Geometry, Bond Angles, Polarity, Hybridization)
+* Sigma & Pi Bonds
+* Bond Order & Bond Energy
+
+**Unit 8: Solutions & Colligative Properties**
+* Solubility Curves & Saturation
+* Molarity, Molality, and Dilutions
+* Colligative Properties: Boiling Point Elevation & Freezing Point Depression
+* Henry's Law
+* Stoichiometry in Aqueous Solutions
+
+**Unit 9: Acids & Bases**
+* pH/pOH/[H+]/[OH-] Conversions
+* Weak Acid/Base Equilibria (Ka, Kb)
+* Common Ion Effect
+* Neutralization & Titration Calculations
+
+**Unit 10: Redox & Electrochemistry (All WIP)**
+* Assigning Oxidation Numbers
+* Electroplating Calculations (Current, Time, Mass)
+
+**Unit 11: Nuclear Chemistry**
+* Predicting Products of Nuclear Decay (Alpha, Beta, Positron)
+
 

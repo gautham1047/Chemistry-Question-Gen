@@ -1,4 +1,4 @@
-import random, sys, io
+import random, sys, io, math
 from chemFuncts import *
 from chemData import *
 from copy import deepcopy

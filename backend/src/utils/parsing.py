@@ -2,6 +2,43 @@ from chemData import *
 from math import gcd
 import random
 
+def parse_formula(s: str):
+    """Canonical formula parser.
+
+    Accepts:
+        "H2O", "Cu(NO3)2"    -> neutral
+        "OH-", "Na+"         -> trailing +/- (implicit 1)
+        "SO4^2-", "Fe^3+"    -> explicit multi-charge
+        "H_+1", "OH_-1"      -> legacy underscore form
+        "e-"                 -> returns ([], -1)
+
+    Returns (atoms, charge) where atoms is [[symbol, count], ...] in insertion
+    order and charge is a signed int.
+    """
+    if s == "e-":
+        return [], -1
+
+    charge = 0
+    if "_" in s:
+        body, c = s.split("_", 1)
+        charge = int(c)
+        s = body
+    elif "^" in s:
+        body, tail = s.split("^", 1)
+        sign = 1
+        if tail and tail[-1] in "+-":
+            sign = 1 if tail[-1] == "+" else -1
+            tail = tail[:-1]
+        charge = sign * (int(tail) if tail else 1)
+        s = body
+    elif s and s[-1] in "+-":
+        charge = 1 if s[-1] == "+" else -1
+        s = s[:-1]
+
+    atoms = atomsInCompound(s) if s else []
+    return atoms, charge
+
+
 def atomsInCompound(formula: str):
     def parse(i):
         atoms = {}

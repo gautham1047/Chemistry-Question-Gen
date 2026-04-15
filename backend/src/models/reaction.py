@@ -708,12 +708,12 @@ class half_reaction(reaction):
         added.append(hDelta)
         if hDelta < 0:
             hDelta = -hDelta 
-            rList.append(compound("H_+1"))
+            rList.append(compound("H", 1))
             rCoeffs.append(hDelta)
             r_counts["H"] += hDelta
             r_counts["e-"] += hDelta
         elif hDelta > 0:
-            pList.append(compound("H_+1"))
+            pList.append(compound("H", 1))
             pCoeffs.append(hDelta)
             p_counts["H"] += hDelta
             p_counts["e-"] += hDelta

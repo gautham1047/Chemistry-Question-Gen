@@ -1,62 +1,87 @@
 from src.utils.parsing import *
 from src.utils.generators import getRandomCompound
 from src.utils.bonding import *
+from src.utils.naming import name_from_atoms
 from src.registry import set_compound_factory, make_compound, make_reaction
 from math import gcd
 
 class compound:
-    def __init__(self, compoundList = "RANDOM", charge = 0):
+    def __init__(self, compoundList=None, charge=0):
+        self.K_sp = None
+        self.temp = 0
+
+        if isinstance(compoundList, compound):
+            self.name = compoundList.name
+            self.equation = compoundList.equation
+            self.type = compoundList.type
+            self.charge = compoundList.charge
+            self.compound = [list(a) for a in compoundList.compound]
+            self._rebuild_dict()
+            return
+
         if compoundList == "e-":
-            self.charge = -1
-            self.K_sp = None
             self.name = "electron"
             self.equation = "e-"
             self.type = "electron"
+            self.charge = -1
             self.compound = []
-            self.temp = 0
-            return None
+            self.compoundDict = {}
+            return
 
-        self.charge = charge
-        self.K_sp = None
-        if compoundList == "RANDOM": compoundList = getRandomCompound()
-        if type(compoundList) == list:
-            self.name = compoundList[0]
-            self.equation = compoundList[1]
-            try: self.type = compoundList[2]
-            except IndexError: self.type = "n/a"
-        elif type(compoundList) == str:
-            if "_" in compoundList:
-                compoundList, self.charge = compoundList.split("_")
-                self.charge = int(self.charge)
-            if compoundList[-1] == "-": 
-                self.charge = -1
-                compoundList = compoundList[:-1]
+        if compoundList is None or compoundList == "RANDOM":
+            compoundList = getRandomCompound()
+
+        if isinstance(compoundList, list):
+            # element list form: [symbol, count, "element"] — [1] is a count, not a formula.
+            # compound list form: [name, equation, type]
+            self.type = compoundList[2] if len(compoundList) > 2 else "n/a"
+            if self.type == "element":
+                self.name = compoundList[0]
+                self.equation = compoundList[0]
+            else:
+                self.name = compoundList[0]
+                self.equation = compoundList[1]
+            parsed_charge = 0
+        elif isinstance(compoundList, str):
             self.name = "Unknown"
-            self.equation = compoundList
             self.type = "Unknown"
-        
-        if self.type == "element": # if the input is a string this is never run?
-            self.equation = self.name
-            self.compound = [self.equation,1]
-            if self.equation in ["H", "N", "O", "F", "I", "C", "Br", "Cl"]:
-                self.compound[1] = 2
+            _, parsed_charge = parse_formula(compoundList)
+            # strip any charge suffix from the equation without touching the body
+            eq = compoundList
+            if "_" in eq:
+                eq = eq.split("_", 1)[0]
+            elif "^" in eq:
+                eq = eq.split("^", 1)[0]
+            elif eq and eq != "e-" and eq[-1] in "+-":
+                eq = eq[:-1]
+            self.equation = eq
+        else:
+            raise TypeError(f"compound() got unexpected input: {type(compoundList).__name__}")
+
+        self.charge = charge if charge else parsed_charge
+
+        # element shorthand: upgrade bare diatomic symbols to their molecular form
+        if self.type == "element":
+            if self.equation in ["H", "N", "O", "F", "I", "Br", "Cl"]:
                 self.equation += "2"
-            elif self.equation in ["H2", "N2", "O2", "F2", "I2", "C2", "Br2", "Cl2"]:
-                self.compound = [self.compound[0:-1], 2]
             elif self.equation == "Hg2":
                 self.equation = "Hg"
-                self.compound = [["Hg",1]]
-        else: self.compound = atomsInCompound(self.equation)
 
-        if type(self.compound[0]) == str:
-            self.compound = [self.compound]
+        self.compound = atomsInCompound(self.equation)
+        self._rebuild_dict()
 
+    def _rebuild_dict(self):
         self.compoundDict = {}
-        for i in self.compound: 
-            if i[0] in self.compoundDict: self.compoundDict[i[0]] += i[1]
-            else: self.compoundDict[i[0]] = i[1]
+        for sym, count in self.compound:
+            self.compoundDict[sym] = self.compoundDict.get(sym, 0) + count
 
-        self.temp = 0
+    def __eq__(self, other):
+        if not isinstance(other, compound):
+            return NotImplemented
+        return self.equation == other.equation and self.charge == other.charge
+
+    def __hash__(self):
+        return hash((self.equation, self.charge))
 
     def __str__(self):
         return self.__repr__()
@@ -65,22 +90,11 @@ class compound:
         if self.equation == "e-": return "e-"
         return self.equation + ("_" + str(self.charge)) * (self.charge != 0)
 
-    def getEq(self): # why did i even make this method?!
-        eq = ""
-        for i in self.compoundDict:
-            num = self.compoundDict[i]
-            if num == 1:
-                num = ""
-            eq += i[0] + str(num)
-        return eq
-            
+    def getEq(self):
+        return compoundToString(self.compound)
+
     def getMolarMass(self):
-        mass = 0
-        for i in self.compound:
-            if type(i) == list:
-                mass += getAtomMass(i[0]) * i[1]
-            else: mass += getAtomMass(self.compound[0]) * self.compound[1]
-        return mass
+        return sum(getAtomMass(sym) * count for sym, count in self.compound)
     
     def getParticles(self, moles = 1):
         return moles * 6.02e+23
@@ -89,132 +103,21 @@ class compound:
         return moles * self.getMolarMass()
     
     def getAtoms(self, moles = 1):
-        atomsPerMolecule = 0
-        try:
-            for i in self.compound:
-                atomsPerMolecule += i[1]
-        except IndexError: return 6.02e23 * self.compound[1]
-        except TypeError: return 6.02e23 * self.compound[1]
+        atomsPerMolecule = sum(count for _, count in self.compound)
         return self.getParticles(moles) * atomsPerMolecule
     
     def percentComposition(self):
         MM = self.getMolarMass()
-        returnList = []
-        for i in self.compoundDict:
-            nameI = i[0]
-            percentI = getAtomMass(i) * self.compoundDict[i] * 100 / MM
-            returnList.append([nameI, percentI])
-        return returnList
+        return [[sym, getAtomMass(sym) * count * 100 / MM]
+                for sym, count in self.compoundDict.items()]
 
     def getName(self):
-        name = self.name
-        if "\ " in name:
-            name = name.split("\ ")[1]
-        return name
+        return self.name
     
-    def getNameFromEq(self, eqOveride = None, cmpdOverride = None):
-        if eqOveride == None or cmpdOverride == None: 
-            eq = self.equation
-            cmpd = self.compound
-        else: 
-            eq = eqOveride
-            cmpd = cmpdOverride
-        SpecialCmpds = {"NH3": "ammonia", "H2O": "water", "C2H6O" : "ethanol", 
-                        "CH3CH2OH" : "ethanol", "C2H5OH" : "ethanol", "CHCl3" : "Chloroform",
-                        "CH3COCH3" : "acetone", "C6H6" : "benzene", "CH4" : "methane",
-                        "CH3OH" : "methanol", "C6H12O6" : "glucose", "C12H22O11" : "sucrose",
-                        "C6H6O" : "phenol", "C6H5OH" : "phenol", "C6H5NO2" : "nitrobenzene",
-                        "C10H16O" : "camphor"}
-
-        uniqueEls = []
-        for i in cmpd:
-            if type(i) != int and i[0] not in uniqueEls: uniqueEls.append(i[0])
-        if eq in SpecialCmpds.keys(): return SpecialCmpds.get(eq)
-        if len(cmpd) == 1 or type(cmpd[1]) == int: 
-            diatomics = {"H2": "hydrogen", "N2": "nitrogen", "O2": "oxygen", "F2": "flourine", "Cl2": "chlorine", "Br2": "bromine", "I2": "iodine"}
-            if eq in diatomics.keys(): return diatomics.get(eq) + " gas"
-            
-            el = findElement(eq)
-            return el[1]
-        if "C" in uniqueEls and "H" in uniqueEls: return eq
-        elif len(cmpd) == 2 and "(" not in eq:
-            if eq[0] == "H" and not eq[1].islower():
-                return "hydro" + acidNames.get("".join([i for i in eq if i != "H" and not i.isdigit()])) + " acid"
-            ionic = False
-            nonmetals = []
-            for i in uniqueEls:
-                el = findElement(i)
-                if el[4] in ["m", "tm"]:
-                    ionic = True
-                    metal = i
-                else: nonmetals.append(i)
-            if ionic: 
-                metal = findElement(metal)
-                metalName = metal[1]
-                nonmetalName = ionNames.get(nonmetals[0])
-                if metal[4] == "tm":
-                    try: mCharge = ionizeTernaryIonic(eq)[0][1] # takes care of peroxide and azide
-                    except:
-                        nonmetal = findElement(nonmetals[0])
-                        nmCharge = int(nonmetal[3][0])
-                        if nmCharge > 4: nmCharge = 8 - nmCharge
-                        mCharge = int(nmCharge * cmpd[1][1] / cmpd[0][1])
-                    tmFix = f" ({mCharge}) "
-                else: tmFix = " "
-                return metalName + tmFix + nonmetalName
-            el1 = eq[0]
-            el2 = ""
-            foundDigitOrUpper = False
-            coeffecients = []
-            for i in eq[1:]:
-                if i.isdigit() or i.isupper():
-                    foundDigitOrUpper = True
-                elif not foundDigitOrUpper: el1 += i
-                if foundDigitOrUpper and not i.isdigit(): 
-                    el2 += i
-                if i.isdigit(): coeffecients.append(int(i))
-            idealCoefficients = [findCharge(el1), findCharge(el2)]
-            if set(idealCoefficients) == set(coeffecients):
-                el1 = findElement(el1)
-                el2 = findElement(el2)
-                if el1[7] > el2[7]: 
-                    firstEl = el2
-                    lastEl = el1
-                else: 
-                    firstEl = el1
-                    lastEl = el2
-                lastEl = ionNames.get(lastEl[2])
-                return firstEl[1] + " " + lastEl
-        else:
-            # check for acids
-            if eq[0] == "H" and not eq[1].islower():
-                ion = ""
-                if eq[1].isdigit(): index = 2
-                else: index = 1
-                ion = eq[index:]
-                if eq[1].isdigit(): charge = int(eq[1])
-                else: charge = 1
-                name = findPolyatomicIon(ion,charge)
-                name = name.replace("ite", "ous")
-                name = name.replace("ate","ic")
-                name = name.replace("sulf", "sulfur")
-                name = name.replace("sulfuride","sulfide")
-                name = name.replace("phosph","phosphor")
-                name = name.replace("cynanide","hydrocyanic")
-                name = name.replace("azide", "hydroazoic")
-                return name + " acid"
-            try:
-                ionized = ionizeTernaryIonic(eq)
-                ion = findPolyatomicIon(ionized[1][0], ionized[1][1])
-                metal = ionized[0][0]
-                if metal == "NH4": return "ammonium " + ion
-                metal = findElement(metal)
-                if metal[4] == "tm": 
-                    tmFix = f" ({ionized[0][1]}) "
-                else: tmFix = " "
-                return metal[1] + tmFix + ion
-            except: pass
-        return eq
+    def getNameFromEq(self, eqOveride=None, cmpdOverride=None):
+        if eqOveride is None or cmpdOverride is None:
+            return name_from_atoms(self.compound, self.equation)
+        return name_from_atoms(cmpdOverride, eqOveride)
 
     def refresh(self):
         self.name = self.getNameFromEq()
@@ -394,31 +297,21 @@ class compound:
         return self.equation != "CO" and self.uniqueEls() == set(["H", "C"]) or self.uniqueEls() in [set(["H", "C", el]) for el in ["O", "F", "Cl", "Br", "I"]]
     
     def isAcid(self):
-        return self.equation[0] == "H" and self.equation[int(self.equation[1].isdigit()) + 1:] in polyatomicCharges
+        # polyatomic acid: leading H(n), remainder is a polyatomic ion
+        if self.compoundDict.get("H", 0) == 0:
+            return False
+        body = compoundToString([[s, c] for s, c in self.compound if s != "H"])
+        return body in polyatomicCharges
 
     def isBinaryMolecular(self):
         return len(self.uniqueEls()) == 2 and self.isMolecular()
 
-    def isTernaryIonic(self):
-        if "(" in self.equation: return True
-        if self.equation[-2:] == "O2": return True
-        pass
-
-    # incomplete
-    def hasPeroxide(self):
-        if "O2" not in self.equation or not self.isIonic(): return False
-        if "(O2)" in self.equation: return True
-        if len(self.uniqueEls()) != 2: return False
-        metal = findElement(self.compound[0][0])
-
-        charge = metal[3]
-        if charge[-1] == "b": return False # i dont even want to deal with this
-        else: charge = int(charge[0])
-
-        nmCharge = charge
-
     def isElement(self):
         return all([i.islower() and not i.isdigit() for i in self.equation[1:]])
+
+    def hasSingleElement(self):
+        """True if the compound contains exactly one distinct element (Na, H2, P4, ...)."""
+        return len(self.compoundDict) == 1
 
     def setEq(self, eq):
         self.equation = eq
@@ -444,12 +337,12 @@ class compound:
             return covalentBondsHC(self)
 
         try: return covalentBondsBM(self, self.charge)
-        except: raise Exception("No lewis dot structure found")
+        except Exception: raise Exception("No lewis dot structure found")
 
     def getCovalentBonds(self):
         try:
             matrix = self.covalentBonds()
-        except:
+        except Exception:
             raise Exception(f"{self.equation} is not a covalent compound")
         
         bonds = []
@@ -467,7 +360,7 @@ class compound:
                     bottom = matrix[i][j-1]
 
                 try: bonds.append([top, num, bottom])
-                except: pass
+                except (NameError, UnboundLocalError): pass
         bonds = [bond if i % 2 == 0 else None for i, bond in enumerate(sorted(bonds))]
         for i in bonds:
             if i == None: bonds.remove(i)
@@ -491,7 +384,7 @@ class compound:
 
     def bondEnergy(self):
         if self.equation == "CO2": return 1157
-        if len(self.compound) == 1 and self.numElements() == 1: return 0
+        if len(self.compound) == 1 and self.totalAtoms() == 1: return 0
         
         energy = 0
         bonds = self.getCovalentBonds()
@@ -500,7 +393,7 @@ class compound:
                 try:
                     bond = i[0][0] + str(i[1]) + i[2][0]
                     energy += bondEnergies.get(bond)
-                except:
+                except TypeError:
                     bond = i[2][0] + str(i[1]) + i[0][0]
                     energy += bondEnergies.get(bond)
             except TypeError: raise Exception("bond not found: " + str(i))
@@ -528,15 +421,16 @@ class compound:
 
         effectivePairs = bonds + lonePairs
 
-        try: 
+        try:
             return bondTypeDict[effectivePairs * 10 + lonePairs]
-        except: 
+        except KeyError:
             raise Exception(f"bond type not found: effective pairs: {effectivePairs}, lone pairs: {lonePairs}")
 
-    def numElements(self):
-        s = 0
-        for i in self.compound: s += i[1]
-        return s
+    def totalAtoms(self):
+        """Total atom count across all elements (H2O -> 3). Not to be confused
+        with `len(self.compoundDict)` which gives the number of *distinct*
+        elements."""
+        return sum(count for _, count in self.compound)
 
     def hasEl(self, el): 
         for i in self.compound:
@@ -552,7 +446,7 @@ class compound:
             return False
         
         try: return self.VESPR()[3] == "polar"
-        except: return False
+        except Exception: return False
 
     def getNumEl(self, el):
         for i in self.compound:
@@ -561,8 +455,17 @@ class compound:
         return 0
 
     def isIonic(self):
-        metal = self.compound[0][0]
-        return int(findElement(metal)[0]) in metalsDict
+        # ionic = contains at least one metal or transition metal, OR an NH4+ cation
+        if "NH4" in self.equation:
+            return True
+        for sym in self.compoundDict:
+            try:
+                el = findElement(sym)
+            except Exception:
+                continue
+            if el[4] in ("m", "tm"):
+                return True
+        return False
 
     def isWater(self):
         return self.equation == "H2O"
@@ -576,30 +479,37 @@ class compound:
 
         return Ksp
     
-    def solubility_rx(self, mConc = 0, nConc = 0):
-        if self.K_sp == None: self.K_sp = self.gen_K_sp()
+    def solubility_rx(self, mConc=0, nConc=0):
+        if self.K_sp is None:
+            self.K_sp = self.gen_K_sp()
+
+        cation, anion = self._dissociate()
+        return make_reaction(["s", [self],
+                              [make_compound(*cation), make_compound(*anion)],
+                              [self.K_sp, mConc, nConc]])
+
+    def _dissociate(self):
+        """Return ((cation_formula, cation_charge), (anion_formula, anion_charge))."""
         try:
             m, nm = ionizeTernaryIonic(self.equation)
-            m = m[0] + "_" + str(m[1])
-            nm = nm[0] + "_-" + str(nm[1])
-        except:
-            if "(NH4)" in self.equation:
-                m = ["NH4", 1]
-                nm = [self.equation[6:], int(self.equation[5])]
-            elif "NH4" in self.equation:
-                m = ["NH4", 1]
-                nm = [self.equation[3:], 1]
-            elif len(self.compoundDict) == 2:
-                nm = list(self.compoundDict.keys())[1]
-                nmCharge = int(findElement(nm)[3][0])
-                nmCharge = min(4, nmCharge) + int(nmCharge > 4) * (4 - nmCharge)
-                nm += "_-" + str(nmCharge)
+            return (m[0], m[1]), (nm[0], -nm[1])
+        except Exception:
+            pass
 
-                mCharge = nmCharge * self.compound[1][1] / self.compound[0][1]
-                m = self.compound[0][0] + "_" + str(int(mCharge))
-            # raise Exception(f"only input ternary ionic compounds, {self} is not valid")
-        
-        return make_reaction(["s", [self], [make_compound(m), make_compound(nm)], [self.K_sp, mConc, nConc]])
+        if "(NH4)" in self.equation:
+            return ("NH4", 1), (self.equation[6:], -int(self.equation[5]))
+        if "NH4" in self.equation:
+            return ("NH4", 1), (self.equation[3:], -1)
+        if len(self.compoundDict) == 2:
+            m_sym, m_count = self.compound[0]
+            n_sym, n_count = self.compound[1]
+            nm_charge = int(findElement(n_sym)[3][0])
+            if nm_charge > 4:
+                nm_charge = 8 - nm_charge
+            m_charge = int(nm_charge * n_count / m_count)
+            return (m_sym, m_charge), (n_sym, -nm_charge)
+
+        raise ValueError(f"cannot dissociate {self.equation}")
 
     # cant handle peroxides
     def oxidation_numbers(self) -> dict[str, int]:
@@ -609,10 +519,10 @@ class compound:
         try:
             metal, polyatomicIon = ionizeTernaryIonic(self.equation)
             oxiList[metal[0]] = metal[1]
-            polyatomicIon[1] = str(-polyatomicIon[1])
-            oxiPoly = compound("_".join(polyatomicIon)).oxidation_numbers()
+            oxiPoly = compound(polyatomicIon[0], charge=-polyatomicIon[1]).oxidation_numbers()
             return oxiList | oxiPoly
-        except: pass
+        except Exception:
+            pass
 
         if oxiList.get("F") != None: 
             oxiList["F"] = -1 * self.compoundDict["F"]
@@ -631,7 +541,7 @@ class compound:
 
         oxiSum = sum(list(oxiList.values()))
         try: zero_index = list(oxiList.values()).index(0)
-        except: zero_index = 0
+        except ValueError: zero_index = 0
 
         oxiList[elementsInCmpd[zero_index]] += self.charge - oxiSum
 

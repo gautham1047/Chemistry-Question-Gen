@@ -139,7 +139,7 @@ class solution:
 
     def particlesPerSolute(self):
         if self.solute.isMolecular(): return 1
-        if len(self.solute.uniqueEls()) == 2: return self.solute.numElements()
+        if len(self.solute.uniqueEls()) == 2: return self.solute.totalAtoms()
 
         else:
             m, n = ionizeTernaryIonic(self.solute.equation)
@@ -154,8 +154,8 @@ class AB_blueprint:
     def __init__(self, moles = None, volume = 1, molarity = 1):
         self.acid = compound("H2O")
         self.base = compound("H2O")
-        self.c_acid = compound("H3O_1")
-        self.c_base = compound("OH_-1")
+        self.c_acid = compound("H3O", 1)
+        self.c_base = compound("OH", -1)
 
         if moles: self.molarity = moles / volume
         else: self.molarity = molarity
@@ -187,8 +187,10 @@ class AB_blueprint:
                 oh_conc = self.molarity * oh_groups
                 return 1e-14 / oh_conc
 
-        # Weak acids/bases: use equilibrium calculation
-        return self.bl_rx.prodEqConcs[0]
+        # Weak acids/bases: use equilibrium calculation.
+        # Floor to a tiny positive value: after a common-ion shift H+ can be
+        # driven arbitrarily close to 0 (log10 would crash on 0/negative).
+        return max(self.bl_rx.prodEqConcs[0], 1e-20)
     
     def pH(self):
         return -1 * log10(self.HConc())
@@ -211,7 +213,7 @@ class AB_blueprint:
     def addCommonIon(self, added_molarity):
         prod_eq, _ = self.bl_rx.eqExpression()
         common_ion_index = 0
-        if prod_eq[0][0].equation in ["OH_-1", "H3O_1", "H_1", "H3O_+1", "H_+1"]: common_ion_index = 1
+        if prod_eq[0][0].equation in ["OH", "H3O", "H"]: common_ion_index = 1
 
         newProdConcs = self.bl_rx.prodEqConcs
         newProdConcs[common_ion_index] += added_molarity
@@ -260,14 +262,19 @@ class base(AB_blueprint):
         self.acid = compound("H", 1)
         self.c_base = compound("OH", -1)
         
-        if "(OH)2" in base_eq: c_acid = base_eq[:2] + "_+2"
-        elif "OH" in base_eq: c_acid = base_eq[:-2] + "_+1"
+        if "(OH)2" in base_eq:
+            c_acid_eq, c_acid_charge = base_eq[:2], 2
+        elif "OH" in base_eq:
+            c_acid_eq, c_acid_charge = base_eq[:-2], 1
         else:
-            if base_eq[-1] == "H": c_acid = base_eq + "2_+1"
-            if base_eq[-2] == "H": c_acid = base_eq[:-1] + str(int(base_eq[-1]) + 1) + "_+1"
-            else: c_acid = base_eq + "H_+1"
-        
-        self.c_acid = compound(c_acid)
+            if base_eq[-1] == "H":
+                c_acid_eq, c_acid_charge = base_eq + "2", 1
+            if base_eq[-2] == "H":
+                c_acid_eq, c_acid_charge = base_eq[:-1] + str(int(base_eq[-1]) + 1), 1
+            else:
+                c_acid_eq, c_acid_charge = base_eq + "H", 1
+
+        self.c_acid = compound(c_acid_eq, c_acid_charge)
 
         self.K_eq = KbDict[base_eq]
         if self.K_eq == "LARGE": self.K_eq = 9e200

@@ -2,6 +2,7 @@
 import random
 import math
 from src.problem_registry import problem, GAS_LAWS
+from src.problems._helpers import reaction_verb
 from chemData import *
 from src import *
 
@@ -184,13 +185,7 @@ def gas_stoichiometry(rx_type):
             numReactants = len(reactants)
             if numReactants > 1: bad = False
 
-        printStr = ["Combine ", "Decompose ", "Combust ", "Completely Combust ", "Incompletley Combust ", "Write the reaction between "]
-        if rx.typeRx in ["s1", "s2", "s3"]: printStr = printStr[0]
-        elif rx.typeRx in ["d1", "d2", "d3"]: printStr = printStr[1]
-        elif rx.typeRx == "c": printStr = printStr[2]
-        elif rx.typeRx == "complete combustion": printStr = printStr[3]
-        elif rx.typeRx == "incomplete combustion": printStr = printStr[4]
-        else: printStr = printStr[5]
+        printStr = reaction_verb(rx)
         for j, i in enumerate(reactants):
             if len(separatedCmpds) == 3 and  j == 1: printStr += separatedCmpds[2] + " "
             try:

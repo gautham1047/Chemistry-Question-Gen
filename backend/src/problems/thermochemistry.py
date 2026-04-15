@@ -1,6 +1,7 @@
 """Thermochemistry problems (15-17)."""
 import random
 from src.problem_registry import problem, THERMOCHEMISTRY
+from src.problems._helpers import reaction_verb, mole_conversions, reactant_name
 from chemData import *
 from src import *
 
@@ -49,7 +50,7 @@ def heat_of_physical_change():
 
     choice = random.randint(0, 4)
     unitsArr = ["moles", "L", "particles", "atoms", "g"]
-    choices = [moles, moles * 22.4, moles * 6.02e+23, cmpd.getAtoms(moles), cmpd.getMass(moles)]
+    choices = mole_conversions(cmpd, moles)
     question = f"If {choices[choice]} {unitsArr[choice]} of {cmpd.name} is {strVar1} from {startTemp} C to {finalTemp} C, how much heat {strVar2}? {shString}"
     return question, str(abs(heat)) + " kJ"
 
@@ -126,19 +127,7 @@ def bomb_calorimetry(rx_type):
     reactants = separatedCmpds[0]
     products = separatedCmpds[1]
 
-    printStr = ["Combine ", "Decompose ", "Combust ", "Completely Combust ", "Incompletley Combust ", "Write the reaction between "]
-    if rx.typeRx in ["s1", "s2", "s3"]:
-        printStr = printStr[0]
-    elif rx.typeRx in ["d1", "d2", "d3"]:
-        printStr = printStr[1]
-    elif rx.typeRx == "c":
-        printStr = printStr[2]
-    elif rx.typeRx == "complete combustion":
-        printStr = printStr[3]
-    elif rx.typeRx == "incomplete combustion":
-        printStr = printStr[4]
-    else:
-        printStr = printStr[5]
+    printStr = reaction_verb(rx)
 
     heatList = []
     indexList = []
@@ -176,14 +165,8 @@ def bomb_calorimetry(rx_type):
             printStr += reactant + " and "
             indexList.pop(0)
         else:
-            reactantName = reactant.getNameFromEq()
-            if reactantName == "nitric acid":
-                coeffientList = [i[1] for i in reactants + products]
-                if coeffientList in [[3, 8, 3, 2, 4], [8, 3, 3, 2, 4]]:
-                    reactantName = "dilute nitric acid"
-                elif coeffientList in [[4, 1, 1, 2, 2], [1, 4, 1, 2, 2]]:
-                    reactantName = "concentrated nitric acid"
-            printStr += reactantName + " and "
+            coeffs = [i[1] for i in reactants + products]
+            printStr += reactant_name(reactant, coeffs) + " and "
     printStr = printStr[0:-5] + ". "
 
     if indexList != []:

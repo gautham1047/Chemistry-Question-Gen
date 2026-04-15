@@ -1,6 +1,7 @@
 """Chemical Quantities problems (6-10)."""
 import random
 from src.problem_registry import problem, CHEMICAL_QUANTITIES
+from src.problems._helpers import mole_conversions
 from chemData import *
 from src import *
 
@@ -14,7 +15,7 @@ def molar_conversions():
     startList = [" moles of ", " L of ", " particles of ", " atoms of ", " grams of "]
     endList = ["How many moles are in ", "What is the volume of ", "How many particles are in ", "How many atoms are in ", "What is the mass of "]
     moles = .25 * random.randint(1, 40)
-    resultsList = [moles, moles * 22.4, moles * 6.02e+23, myCompound.getAtoms(moles), myCompound.getMass(moles)]
+    resultsList = mole_conversions(myCompound, moles)
     start = 1
     end = 1
     while start == end:

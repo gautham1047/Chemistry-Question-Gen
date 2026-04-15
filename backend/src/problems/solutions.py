@@ -1,6 +1,7 @@
 """Solutions problems (46-56)."""
 import random
 from src.problem_registry import problem, SOLUTIONS
+from src.problems._helpers import reaction_verb, reactant_name
 from chemData import *
 from src import *
 
@@ -219,22 +220,9 @@ def reactions_with_solubility_units():
         if compound("NO2") in soluableProducts: soluableProducts.remove(compound("NO2"))
         if len(soluableProducts) != 0: break
 
-    printStr = ["Combine ", "Decompose ", "Combust ", "Completely Combust ", "Incompletley Combust ", "Write the reaction between "]
-    if rx.typeRx in ["s1", "s2", "s3"]: printStr = printStr[0]
-    elif rx.typeRx in ["d1", "d2", "d3"]: printStr = printStr[1]
-    elif rx.typeRx == "c": printStr = printStr[2]
-    elif rx.typeRx == "complete combustion": printStr = printStr[3]
-    elif rx.typeRx == "incomplete combustion": printStr = printStr[4]
-    else: printStr = printStr[5]
+    printStr = reaction_verb(rx)
     for reactant in reactants:
-        reactantName = reactant.getNameFromEq()
-        coeffientList = rx.balanceEq()
-        if reactantName == "nitric acid":
-            if coeffientList in [[3,8,3,2,4], [8,3,3,2,4]]:
-                reactantName = "dilute nitric acid"
-            elif coeffientList in [[4,1,1,2,2], [1,4,1,2,2]]:
-                reactantName = "concentrated nitric acid"
-        printStr += reactantName + " and "
+        printStr += reactant_name(reactant, rx.balanceEq()) + " and "
     question = printStr[0:-5] + ". "
 
     solutions_list : list[solution]= []

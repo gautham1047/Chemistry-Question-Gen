@@ -1,6 +1,7 @@
 """Chemical Reactions problems (11-12)."""
 import random
 from src.problem_registry import problem, CHEMICAL_REACTIONS
+from src.problems._helpers import reaction_verb, reactant_name
 from chemData import *
 from src import *
 
@@ -26,28 +27,9 @@ def solubility_rules():
 def writing_chemical_equations(rx_type):
     rx = reaction(randomRx(rx_type))
     reactants = rx.SkeletonEquation()[0]
-    printStr = ["Combine ", "Decompose ", "Combust ", "Completely Combust ", "Incompletley Combust ", "Write the reaction between "]
-    if rx.typeRx in ["s1", "s2", "s3"]:
-        printStr = printStr[0]
-    elif rx.typeRx in ["d1", "d2", "d3"]:
-        printStr = printStr[1]
-    elif rx.typeRx == "c":
-        printStr = printStr[2]
-    elif rx.typeRx == "complete combustion":
-        printStr = printStr[3]
-    elif rx.typeRx == "incomplete combustion":
-        printStr = printStr[4]
-    else:
-        printStr = printStr[5]
+    printStr = reaction_verb(rx)
     for reactant in reactants:
-        reactantName = reactant.getNameFromEq()
-        coeffientList = rx.balanceEq()
-        if reactantName == "nitric acid":
-            if coeffientList in [[3, 8, 3, 2, 4], [8, 3, 3, 2, 4]]:
-                reactantName = "dilute nitric acid"
-            elif coeffientList in [[4, 1, 1, 2, 2], [1, 4, 1, 2, 2]]:
-                reactantName = "concentrated nitric acid"
-        printStr += reactantName + " and "
+        printStr += reactant_name(reactant, rx.balanceEq()) + " and "
     printStr = printStr[0:-5]
 
     question = printStr + ". What is the sum of the coefficients"

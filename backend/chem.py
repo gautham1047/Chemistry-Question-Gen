@@ -1,35 +1,13 @@
-from chemProblems import *
-from inflect import engine
+from chemData import *
+from src import *
+import src.problems  # triggers registration
+from src.problem_registry import get_modes, invoke_problem
+from src.problems._helpers import polyatomic_ion_test
 
-inflector = engine()
+modeList = get_modes()
+
 print("Instructions: \ntype 0 for a table of contents, then choose what you want to do. \nHit enter to get the answer (it doesn't autocheck) \ntype break to escape.\nWhen finding volume, assume all compounds are gasses, unless otherwise specified")
-# When adding a new option, make sure to add to the more specific list (by unit) in settings 
-modeList = [
-        "SI Units", "Average atomic mass", "Missing Isotope Percentage", 
-        "Formula to Name", "Name to Formula", "Molar Conversions", 
-        "Calculate Percent Composition", "Percent Composition to equation (WIP)", "Mass of One Element in a Compound",
-        "Complex Percent Composition to Equation",  "Solubility Rules", "Writing Chemical Equations",
-        "Basic Stoichiometry", "Percent Yield/Limiting Reagent", "Heat of Physical Change",
-        "Coffee Cup Calorimetry", "Bomb Calorimetry", "Average Kinetic Energy",
-        "Effusion Rates", "Gas Laws", "Gas Stoiciometry",
-        "Electron configuration", "Nobel Gas Shorthand", "Paramagnetic vs Diamagnetic",
-        "Quantum Numbers", "Basic Waves",  "Bohr's Law",
-        "De Broglie for electrons", "De Broglie in general", "Heisenburg uncertainty principle",
-        "Identifying types of waves", "Harder Bohr's Law", "Atomic Size",
-        "Ion Size", "Ionization Energy", "Electronegativity",
-        "Electron Affinity", "All Periodic Trends", "Lattice Energy",
-        "Lewis Dot Structure", "VSEPR", "Bond Order", 
-        "Sigma and Pi Bonds", "Bond Energies", "Enthalpy from Bond Energies",
-        "Solubility Calculations", "Determining Saturation", "Dilution",
-        "Solutions Unit Conversions (Aqueous)", "Solutions Unit Conversions (general)", "Colligative Properties", 
-        "Molar Mass From bp/fp", "Henry's Law", "Reactions with Solubility Units", 
-        "Hydrates", "Polar vs Nonpolar", "Basic Concentration",
-        "Method of Initial Rates", "Determining the Equilibrium Constant", "Missing Equilibrium Concentration",
-        "Calculating K_eq", "Calculating Equilibrium Concentrations from Initial", "More Thermodynamics", "pH Conversions",
-        "pH from Molarity", "pH with Common Ion Effect", "Neutralization/Tritation Reactions",
-        "Solubility Products", "Oxidation Numbers", "Balancing Redox (WIP)",
-        "Reaction Potential (WIP)", "Electroplating", "Nuclear Chem"
-        ]
+# When adding a new option, make sure to add to the more specific list (by unit) in settings
 
 rxType = ""
 polyatomicIonChoices = [i for i in list(polyatomicIons.keys())]
@@ -41,13 +19,13 @@ answer = "ERROR"
 
 while True:
     settings = False
-    if randomChoices != originalChoices: 
+    if randomChoices != originalChoices:
         randomSelected = True
         selected = "random"
 
-    if randomSelected: 
+    if randomSelected:
         selected = random.choice(randomChoices)
-    elif selected == "-1" or selected == "undef": 
+    elif selected == "-1" or selected == "undef":
         bad = True
         b = False # break variable
         while bad:
@@ -56,19 +34,21 @@ while True:
                 selected = random.choice(randomChoices)
                 randomSelected = True
                 break
-            if selected == "break" or selected == "b": 
+            if selected == "break" or selected == "b":
                 b = True
                 break
             elif selected == "settings" or selected == "-1":
                 settings = True
                 break
             elif selected == "p" or selected == "polyatomic":
-                while True: 
-                    if getAnswer(polyatomicIonTest(polyatomicIonChoices)) == "break": break
+                while True:
+                    q, a = polyatomic_ion_test(polyatomicIonChoices)
+                    print(q)
+                    if getAnswer(a) == "break": break
             elif selected == "0":
                 for i, mode in enumerate(modeList):
                     print(f"{i+1}. {mode}")
-                continue                
+                continue
             else:
                 try:
                     selected = int(selected)
@@ -76,7 +56,7 @@ while True:
                     bad = False
                 except:
                     print("bad")
-    
+
     if b: break
 
     if settings:
@@ -95,7 +75,7 @@ while True:
                 break
             elif choice == "2":
                 rxType = input("What type of reaction do you want: synthesis, decomposition, combustion, single replacement, or double replacement (hit enter to reset): \n")
-                if rxType in ["synthesis", "decomposition", "combustion", "single replacement", "double replacement", "special"]: 
+                if rxType in ["synthesis", "decomposition", "combustion", "single replacement", "double replacement", "special"]:
                     print("\nSetting changed")
                 break
             elif choice == "3":
@@ -104,7 +84,7 @@ while True:
                 choices = input("Choose which ions to include (ex. 1, 4, 9). Type -1 for presets: ")
                 if choices == "break": break
                 if choices == "-1":
-                    presets = {"difficult" : [0, 4, 5, 11, 12, 13, 28, 31, 35, 42, 43, 44, 45], 
+                    presets = {"difficult" : [0, 4, 5, 11, 12, 13, 28, 31, 35, 42, 43, 44, 45],
                                 "-ates + -ites" : [0, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 45],
                                 "all" : [i for i in range(0,len(list(polyatomicIons.keys())))]}
                     for i, preset in enumerate(list(presets.keys())): print(f"{i+1}. {preset} : {presets.get(preset)}")
@@ -131,7 +111,7 @@ while True:
                                 "Chapter 12" : [18, 19, 20, 21],
                                 "Chapter 13" : [i for i in range(22, 33)],
                                 "Chapter 14-16" : [i for i in range(33, 46)],
-                                "Chapter 17-18" : [i for i in range(46, 57)],       
+                                "Chapter 17-18" : [i for i in range(46, 57)],
                                 "Rates": [57, 58], # rates
                                 "Equilibrium" : [59, 60, 61, 62], # eq
                                 "More Thermodynmaics" : [63], # thermo v2
@@ -150,14 +130,15 @@ while True:
                 print("\ndone")
                 break
             elif choice == "break": break
-            else: 
+            else:
                 print("bad")
                 break
     else:
-        func = inflector.number_to_words(selected).replace("-","")
-        answer = getAnswer(eval(func + "(rxType = rxType)"))
+        question, raw_answer = invoke_problem(selected, rxType)
+        print(question)
+        answer = getAnswer(raw_answer)
 
-    if answer == "break": 
+    if answer == "break":
         randomSelected = False
         randomChoices = originalChoices.copy()
         selected = "undef"

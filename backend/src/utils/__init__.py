@@ -12,8 +12,9 @@ from src.utils.generators import (
     chanceList,
     randUnit, randTempUnit, randPressureUnit, randVolumeUnit,
     randTemp, randPressure, randVolume,
-    getRandomCompound, randElement, randPolyatomic,
-    randBMForBonds, randCmpdForBonds, randomRx
+    getRandomCompound, randomCmpd, randElement, randPolyatomic,
+    randBMForBonds, randCmpdForBonds, randomRx,
+    custom_reaction, dilute_hno3, concentrated_hno3
 )
 from src.utils.math_helpers import (
     getAnswer, getUnit, getPressure, getVolume, getTemp,

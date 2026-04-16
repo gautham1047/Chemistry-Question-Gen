@@ -9,12 +9,12 @@ from src import *
 @problem(11, "Solubility Rules", CHEMICAL_REACTIONS)
 def solubility_rules():
     repeat = True
-    cmpd = compound(getRandomCompound(5, 0, 1, 0, 0))
+    cmpd = randomCmpd(5, 0, 1, 0, 0)
     while repeat or (cmpd.isSoluable() == "inconclusive"):
         repeat = False
-        cmpd = compound(getRandomCompound(5, 0, 1, 0, 0))
+        cmpd = randomCmpd(5, 0, 1, 0, 0)
         while type(cmpd.isSoluable()) != bool:
-            cmpd = compound(getRandomCompound(5, 0, 1, 0, 0))
+            cmpd = randomCmpd(5, 0, 1, 0, 0)
     question = f"Is {cmpd.equation} soluable?"
     if cmpd.isSoluable():
         ans = "yes"
@@ -25,7 +25,7 @@ def solubility_rules():
 
 @problem(12, "Writing Chemical Equations", CHEMICAL_REACTIONS, accepts_rx_type=True)
 def writing_chemical_equations(rx_type):
-    rx = reaction(randomRx(rx_type))
+    rx = randomRx(rx_type)
     printStr = reaction_verb(rx)
     for cmpd, _ in rx.reactants():
         printStr += reactant_name(cmpd, rx.balanceEq()) + " and "

@@ -16,11 +16,11 @@ def basic_concentration():
 
 @problem(58, "Method of Initial Rates", RATES)
 def method_of_initial_rates():
-    rx = reaction(randomRx())
+    rx = randomRx()
     while True:
         reactants = rx.reactants()
         if rx.molecularity() == 1:
-            rx = reaction(randomRx())
+            rx = randomRx()
             continue
         break
 

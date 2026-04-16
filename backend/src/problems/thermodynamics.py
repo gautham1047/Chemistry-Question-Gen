@@ -6,7 +6,7 @@ from src import *
 
 @problem(63, "More Thermodynamics", THERMODYNAMICS)
 def more_thermodynamics():
-    while rx := reaction(randomRx()):
+    while rx := randomRx():
         if rx.checkRxForThermo(): break
 
     choice = random.randint(0,2)

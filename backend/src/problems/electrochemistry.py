@@ -7,7 +7,7 @@ from src import *
 
 @problem(69, "Oxidation Numbers", ELECTROCHEMISTRY)
 def oxidation_numbers():
-    cmpd = compound(getRandomCompound())
+    cmpd = randomCmpd()
     oNums = cmpd.oxidation_numbers()
     oStr = ', '.join([f"{el}: {oNums[el]}" for el in oNums])
 
@@ -24,7 +24,7 @@ def reaction_potential():
 
 @problem(72, "Electroplating", ELECTROCHEMISTRY)
 def electroplating():
-    while (cmpd := compound(getRandomCompound(1,0,0,0,0))):
+    while (cmpd := randomCmpd(1,0,0,0,0)):
         if len(cmpd.compound) != 2: break
 
     metal, mCharge = ionizeTernaryIonic(cmpd.equation)[0]

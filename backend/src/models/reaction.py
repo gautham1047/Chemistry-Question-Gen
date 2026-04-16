@@ -1,7 +1,6 @@
-import random, math, sympy as sp, numpy as np
+import random, sympy as sp, numpy as np
 from chemData import *
 from src.models.compound import compound
-from src.utils.parsing import ionicCompoundFromElements
 from src.models.element import element
 from src.utils.math_helpers import round_sig
 from src.registry import set_reaction_factory
@@ -68,6 +67,12 @@ class reaction:
             self.generateEqConcs(K_eq)
 
             self.typeRx = "eq"
+        elif isinstance(inputList, dict) and "skeleton" in inputList:
+            # Pre-computed skeleton from generators
+            self._skele_cache = inputList["skeleton"]
+            self.typeRx = inputList["typeRx"]
+            self.occurs = inputList.get("occurs", True)
+            self.misc = inputList.get("misc", {}).get("label") if isinstance(inputList.get("misc"), dict) else inputList.get("misc")
         elif inputList[0] in ["a", "b", "ab"]:
             self.typeRx = inputList[0]
             self.reactantList = inputList[1]
@@ -92,7 +97,7 @@ class reaction:
             self.reactEqConcs = []
             self.prodEqConcs = [inputList[3][1], inputList[3][2]]
             self.eqConcsFromIntial()
-        else:       
+        else:
             self.reactantList = inputList[0]
             # never change the order of reactantList
             self.typeRx = inputList[1]
@@ -140,196 +145,10 @@ class reaction:
         # [[cmpd, coeff], ...] pairs. SkeletonEquation is kept for internal use.
         if self._skele_cache is not None:
             return self._skele_cache
-        self._skele_cache = self._computeSkeleton()
+        # For "eq"/"a"/"b"/"n"/"s" types that store reactants/products directly
+        self._skele_cache = [self.reactantList, self.misc]
         return self._skele_cache
 
-    def _computeSkeleton(self) -> list[list[compound]]:
-        match self.typeRx:
-            case "s1":
-                m = self.reactantList[0]
-                n = self.reactantList[1]
-                mNum = n[1]
-                nNum = m[1]
-                gcd = math.gcd(mNum, nNum)
-                mNum = int(mNum/gcd)
-                nNum = int(nNum/gcd)
-                if mNum == 1: mNum = ""
-                if nNum == 1: nNum = ""
-                nonmetal = ""
-                if n[0][-1] == "2":
-                    for i in n[0]:
-                        if not i.isdigit():
-                            nonmetal += i
-                else: nonmetal = n[0]
-                return [[compound(m[0]), compound(n[0])],[compound(f"{m[0]}{mNum}{nonmetal}{nNum}")]]
-            case "s2":
-                answerDict = {
-                    "SO2" : "H2SO3",
-                    "SO3" : "H2SO4",
-                    "CO2" : "H2CO3",
-                    "N2O3" : "HNO2",
-                    "N2O5" : "HNO3",
-                    "P2O3" : "H3PO3",
-                    "P2O5" : "H3PO4",
-                    "As2O3" : "H3AsO3",
-                    "As2O5" : "H3AsO4",
-                    "NH3" : "NH4OH"
-                }
-                cmpd = self.reactantList[0][0]
-                product = answerDict.get(cmpd)
-                return [[compound(cmpd), compound("H2O")],[compound(product)]]
-            case "s3":
-                mOxide = self.reactantList[0][0]
-                lastDigit = mOxide[-1]
-                if lastDigit == "O":
-                    if "2" in mOxide:
-                        mCharge = 1
-                    else: mCharge = 2
-                else: 
-                    if lastDigit == "3":
-                        mCharge = 3
-                    else: mCharge = 4
-                if mOxide[1].islower():
-                    metal = mOxide[0:2]
-                else: metal = mOxide[0]
-                product = f"{metal}"
-                if mCharge == 1:
-                    product += "OH"
-                else: product += "(OH)" + str(mCharge)
-                mOxide = compound(mOxide)
-                product= compound(product)
-                return [[mOxide, compound("H2O")], [product]]
-            case "d1":
-                cmpd = compound(self.reactantList[0])
-                el1 = cmpd.compound[0][0]
-                try: el2 = cmpd.compound[1][0]
-                except IndexError: raise Exception("Invalid compound: " + cmpd)
-                diatomicAtoms = ["H", "N", "O", "F", "Cl", "Br", "I"]
-                if el1 in diatomicAtoms: el1 += "2"
-                if el2 in diatomicAtoms: el2 += "2"
-                return [[cmpd], [compound(el1), compound(el2)]]
-            case "d2":
-                cmpd = self.reactantList[0]
-                if "(ClO3)" in cmpd:
-                    index = cmpd.index("(")
-                    ClO3Num = cmpd[-1]
-                else: 
-                    index = cmpd.index("ClO3")
-                    ClO3Num = ""
-                el1 = compound(cmpd[:index] + "Cl" + ClO3Num)
-                el2 = compound("O2")
-                return [[compound(cmpd)], [el1, el2]]
-            case "d3":
-                cmpd = self.reactantList[0]
-                if "(CO3)" in cmpd:
-                    index = cmpd.index("(")
-                    CO3Num = cmpd[-1]
-                else: 
-                    index = cmpd.index("CO3")
-                    CO3Num = ""
-                el1 = compound(cmpd[:index] + "O" + CO3Num)
-                el2 = compound("CO2")
-                return [[compound(cmpd)], [el1, el2]]
-            case "c1":
-                m = self.reactantList[0]
-                n = self.reactantList[1]
-                mNum = n[1]
-                nNum = m[1]
-                gcd = math.gcd(mNum, nNum)
-                mNum = int(mNum/gcd)
-                nNum = int(nNum/gcd)
-                if mNum == 1: mNum = ""
-                if nNum == 1: nNum = ""
-                nonmetal = ""
-                if n[0][-1] == "2":
-                    for i in n[0]:
-                        if not i.isdigit():
-                            nonmetal += i
-                else: nonmetal = n[0]
-                return [[compound(m[0]), compound(n[0])],[compound(f"{m[0]}{mNum}{nonmetal}{nNum}")]]
-            case "complete combustion":
-                reactant = compound(self.reactantList[0])
-                return [[reactant, compound("O2")], [compound("CO2"), compound("H2O")]]
-            case "incomplete combustion":
-                reactant = compound(self.reactantList[0])
-                return [[reactant, compound("O2")], [compound("CO"), compound("H2O")]]
-            case "sr1":
-                mActivitySeries = ["Ag", "Hg", "Cu", "H", "Pb", "Fe", "Zn", "Al", "Mg", "Na", "Ca", "K", "Li"]
-                metal1= self.reactantList[1]
-                m1 = metal1[0]
-                nonmetal = self.misc[3]
-                nonmetal[0] = nonmetal[0].replace("(","")
-                nonmetal[0] = nonmetal[0].replace(")", "")
-                metal2 = self.misc[2]
-                m2 = metal2[0]
-                product = ionicCompoundFromElements(m = metal1, n = nonmetal)
-                metal1.append("element")
-                metal2.append("element")
-                cmpd = self.reactantList[0][0]
-                if m1 == "Hg2": m1Index = 1
-                else: m1Index = mActivitySeries.index(m1)
-                if m2 == "Hg2": m2Index = 1
-                else: m2Index = mActivitySeries.index(m2)
-                if m1Index < m2Index:
-                    self.occurs = False
-                return [[compound(cmpd), compound(metal1)],[compound(product), compound(metal2)]]
-            case "sr2":
-                nActivitySeries = ["I", "Br", "Cl", "F"]
-                nmetal1 = self.reactantList[1]
-                metal = self.misc[2]
-                nmetal2 = self.misc[3]
-                nmetal2.append("element")
-                nmetal1[1] = 1
-                nmetal2[1] = 2
-                product = ionicCompoundFromElements(m = metal, n = nmetal1)
-                nmetal1.append("element")
-                cmpd = self.reactantList[0][0]
-                nmetal1[1] = str(nmetal1[1])
-                nmetal2[1] = str(nmetal2[1])
-                nmetal1[1] += "2"
-                nmetal2[1] += "2"
-                if nActivitySeries.index(nmetal2[0]) > nActivitySeries.index(nmetal1[0]):
-                    self.occurs = False
-                return [[compound(cmpd), compound(nmetal1[0] + '2')], [compound(product), compound(nmetal2[0] + "2")]]
-            case "dr": # this has a ton of errors apparently
-                returnList = self.misc[2]
-                for index, product in enumerate(returnList[1]):
-                    if product.equation == "NH4OH":
-                        returnList[1].pop(index)
-                        returnList[1].append(compound("NH3"))
-                        returnList[1].append(compound("H2O"))
-                    elif product.equation == "H2CO3":
-                        returnList[1].pop(index)
-                        returnList[1].append(compound("H2O"))
-                        returnList[1].append(compound("CO2"))
-                self.occurs = False
-                try:
-                    for product in returnList[1]:
-                        if not product.isSoluable():
-                            self.occurs = True
-                except:
-                    print(returnList)
-                    print(self.reactantList)
-                    raise Exception("error generating skeleton equation")
-
-                return returnList
-            case "special":
-                if self.misc[2] in ["dilute", "concentrated"]:
-                    reactants = [i[0] for i in self.reactantList]
-                    products = [i[0] for i in self.misc[3]]
-                if self.misc[2] == "hydrocarbon replacement":
-                    reactants = [i[0] for i in self.reactantList]
-                    cmpd = reactants[0].compound
-                
-                    if cmpd[0][1] * 2 + 2== cmpd[1][1]:
-                        newCmpd = f"C{cmpd[0][1] if cmpd[0][1] != 1 else ''}H{cmpd[1][1]-2}{reactants[1].equation}"
-                        products = [compound(newCmpd), compound("H2")]
-                    else: products = [compound(reactants[0].equation + reactants[1].equation)]
-                
-                return [reactants, products]
-            case "eq" | "ab" | "a" | "b" | "n" | "s":
-                return [self.reactantList, self.misc]
-            case _: print(self.typeRx)
 
     def balanceEq(self):
         if self._coeffs_cache is not None:
@@ -445,7 +264,7 @@ class reaction:
         # For "special" type, tacks on self.misc[2] as a third element (dilute/concentrated/etc).
         result = [self.reactants(), self.products()]
         if self.typeRx == "special":
-            result.append(self.misc[2])
+            result.append(self.misc)
         return result
 
     def enthalpyFromBonds(self):

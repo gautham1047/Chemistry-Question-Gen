@@ -8,7 +8,7 @@ from src import *
 
 @problem(6, "Molar Conversions", CHEMICAL_QUANTITIES)
 def molar_conversions():
-    myCompound = compound(getRandomCompound(chanceList[0], chanceList[1], chanceList[2], chanceList[3], chanceList[4]))
+    myCompound = randomCmpd()
     name = myCompound.getName()
     if "/ " in name:
         name = name.split("/ ", 1)[1]
@@ -28,7 +28,7 @@ def molar_conversions():
 
 @problem(7, "Calculate Percent Composition", CHEMICAL_QUANTITIES)
 def percent_composition():
-    myCompound = compound(getRandomCompound(chanceList[0], chanceList[1], chanceList[2], 0, chanceList[4]))
+    myCompound = randomCmpd(3, 3, 3, 0, 0)
     compList = myCompound.percentComposition()
     question = "What is the percent composition of " + myCompound.getName()
     ans = ""
@@ -39,7 +39,7 @@ def percent_composition():
 
 @problem(8, "Percent Composition to Equation", CHEMICAL_QUANTITIES)
 def percent_comp_to_equation():
-    myCompound = compound(getRandomCompound(chanceList[0], chanceList[1], chanceList[2], chanceList[3], chanceList[4]))
+    myCompound = randomCmpd()
     compList = myCompound.percentComposition()
     mult = random.randint(1, 4)
     question = "What is molecular formula for a compound with a molar mass of " + str(mult * myCompound.getMolarMass()) + ", if the percent composition of the compound is: "
@@ -53,7 +53,7 @@ def percent_comp_to_equation():
 
 @problem(9, "Mass of One Element in a Compound", CHEMICAL_QUANTITIES)
 def mass_of_element_in_compound():
-    myCompound = compound(getRandomCompound(chanceList[0], chanceList[1], chanceList[2], chanceList[3], chanceList[4]))
+    myCompound = randomCmpd()
     mass = myCompound.getMass(.25 * random.randint(1, 8))
     elNum = random.randint(0, len(myCompound.compound) - 1)
     el = myCompound.compound[elNum][0]
@@ -64,7 +64,7 @@ def mass_of_element_in_compound():
 
 @problem(10, "Complex Percent Composition to Equation", CHEMICAL_QUANTITIES)
 def complex_percent_comp_to_equation():
-    myCompound = compound(getRandomCompound(chanceList[0], chanceList[1], chanceList[2], chanceList[3], chanceList[4]))
+    myCompound = randomCmpd()
     compList = myCompound.percentComposition()
     mult = random.randint(1, 4)
     unit = "g"

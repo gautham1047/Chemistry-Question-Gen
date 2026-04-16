@@ -60,7 +60,7 @@ def missing_isotope_percentage():
 
 @problem(4, "Formula to Name", CHEMICAL_NOMENCLATURE)
 def formula_to_name():
-    myCompound = compound(getRandomCompound(chanceList[0], chanceList[1], chanceList[2], chanceList[3], chanceList[4]))
+    myCompound = randomCmpd()
     name = myCompound.getName()
     if "/ " in name:
         name = name.split("/", 1)[1]
@@ -70,6 +70,6 @@ def formula_to_name():
 
 @problem(5, "Name to Formula", CHEMICAL_NOMENCLATURE)
 def name_to_formula():
-    myCompound = compound(getRandomCompound(chanceList[0], chanceList[1], chanceList[2], chanceList[3], chanceList[4]))
+    myCompound = randomCmpd()
     question = "What is the name of " + myCompound.equation
     return question, myCompound.name

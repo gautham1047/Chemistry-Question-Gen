@@ -121,7 +121,7 @@ def coffee_cup_calorimetry():
 
 @problem(17, "Bomb Calorimetry", THERMOCHEMISTRY, accepts_rx_type=True)
 def bomb_calorimetry(rx_type):
-    rx = reaction(randomRx(rx_type))
+    rx = randomRx(rx_type)
     reactants = rx.reactants()
     products = rx.products()
 

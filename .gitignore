@@ -10,3 +10,6 @@ chemTest.py
 otherChemTest.py
 otherOtherChemTest.py
 flaskTest.py
+
+.md
+settings.local.json

@@ -8,7 +8,7 @@ from src import *
 
 @problem(13, "Basic Stoichiometry", STOICHIOMETRY, accepts_rx_type=True)
 def basic_stoichiometry(rx_type):
-    rx = reaction(randomRx(rx_type))
+    rx = randomRx(rx_type)
     reactants = rx.reactants()
     products = rx.products()
     cmpds = reactants + products
@@ -43,7 +43,7 @@ def basic_stoichiometry(rx_type):
 
 @problem(14, "Percent Yield/Limiting Reagent", STOICHIOMETRY, accepts_rx_type=True)
 def percent_yield_limiting_reagent(rx_type):
-    rx = reaction(randomRx(rx_type))
+    rx = randomRx(rx_type)
     reactants = rx.reactants()
     products = rx.products()
     cmpds = reactants + products
@@ -52,7 +52,7 @@ def percent_yield_limiting_reagent(rx_type):
     printStr = reaction_verb(rx)
     for j, (cmpd, _) in enumerate(reactants):
         if rx.typeRx == "special" and j == 1:
-            printStr += rx.misc[2] + " "
+            printStr += rx.misc + " "
         printStr += cmpd.getName()
         printStr += " and "
 

@@ -1,5 +1,4 @@
 from src.utils.parsing import *
-from src.utils.generators import getRandomCompound
 from src.utils.bonding import *
 from src.utils.naming import name_from_atoms
 from src.registry import set_compound_factory, make_compound, make_reaction
@@ -26,22 +25,7 @@ class compound:
             self.compoundDict = {}
             return
 
-        if compoundList is None:
-            compoundList = getRandomCompound()
-
-        is_element = False
-        if isinstance(compoundList, list):
-            # element list form: [symbol, count, "element"] — [1] is a count, not a formula.
-            # compound list form: [name, equation, type]
-            is_element = len(compoundList) > 2 and compoundList[2] == "element"
-            if is_element:
-                self.name = compoundList[0]
-                self.equation = compoundList[0]
-            else:
-                self.name = compoundList[0]
-                self.equation = compoundList[1]
-            parsed_charge = 0
-        elif isinstance(compoundList, str):
+        if isinstance(compoundList, str):
             _, parsed_charge = parse_formula(compoundList)
             # strip any charge suffix from the equation without touching the body
             eq = compoundList
@@ -55,13 +39,6 @@ class compound:
             raise TypeError(f"compound() got unexpected input: {type(compoundList).__name__}")
 
         self.charge = charge if charge else parsed_charge
-
-        # element shorthand: upgrade bare diatomic symbols to their molecular form
-        if is_element:
-            if self.equation in ["H", "N", "O", "F", "I", "Br", "Cl"]:
-                self.equation += "2"
-            elif self.equation == "Hg2":
-                self.equation = "Hg"
 
         self.compound = atomsInCompound(self.equation)
         self._rebuild_dict()

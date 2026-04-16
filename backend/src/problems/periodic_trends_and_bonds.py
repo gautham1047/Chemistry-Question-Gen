@@ -90,7 +90,7 @@ def lattice_energy():
 
 @problem(40, "Lewis Dot Structure", PERIODIC_TRENDS_AND_BONDS)
 def lewis_dot_structure():
-    cmpd = compound(randCmpdForBonds(1,2,1,6))
+    cmpd = randCmpdForBonds(1,2,1,6)
     question = f"What is the lewis dot structure for {cmpd.equation}"
     return question, print_matrix(cmpd.covalentBonds())
 
@@ -104,24 +104,24 @@ def vsepr():
 
 @problem(42, "Bond Order", PERIODIC_TRENDS_AND_BONDS)
 def bond_order():
-    cmpd = compound(randCmpdForBonds())
+    cmpd = randCmpdForBonds()
     question = f"What is the bond order of {cmpd.equation}"
     return question, cmpd.bondOrder()
 
 @problem(43, "Sigma and Pi Bonds", PERIODIC_TRENDS_AND_BONDS)
 def sigma_and_pi_bonds():
-    cmpd = compound(randCmpdForBonds())
+    cmpd = randCmpdForBonds()
     question = f"How many sigma bonds does {cmpd.equation} have? How many pi bonds?"
     return question, f"sigma bonds: {cmpd.sigmaBonds()}\npi bonds: {cmpd.piBonds()}"
 
 @problem(44, "Bond Energies", PERIODIC_TRENDS_AND_BONDS)
 def bond_energies():
-    cmpd = compound(randCmpdForBonds())
+    cmpd = randCmpdForBonds()
     question = f"What is the bond energy of {cmpd.equation}"
     return question, cmpd.bondEnergy()
 
 @problem(45, "Enthalpy from Bond Energies", PERIODIC_TRENDS_AND_BONDS)
 def enthalpy_from_bond_energies():
-    rx = reaction(randomRx("bond"))
+    rx = randomRx("bond")
     question = "What is the enthalpy of the following reaction:\n\n" + str(rx)
     return question, rx.enthalpyFromBonds()

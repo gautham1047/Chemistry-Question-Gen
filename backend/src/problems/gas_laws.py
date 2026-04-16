@@ -20,8 +20,8 @@ def average_kinetic_energy():
 
 @problem(19, "Effusion Rates", GAS_LAWS)
 def effusion_rates():
-    cmpd1 = compound(getRandomCompound(0,1,1,1,0))
-    cmpd2 = compound(getRandomCompound(0,1,1,1,0))
+    cmpd1 = randomCmpd(0,1,1,1,0)
+    cmpd2 = randomCmpd(0,1,1,1,0)
 
     mass1 = cmpd1.getMass()
     mass2 = cmpd2.getMass()
@@ -45,9 +45,9 @@ def effusion_rates():
 
         options = []
         for i in range(0,4):
-            option = compound(getRandomCompound())
+            option = randomCmpd()
             while option.getMass() == bigger.getMass():
-                option = compound(getRandomCompound())
+                option = randomCmpd()
             options.append(option)
 
         options.insert(random.randint(0,3), bigger)
@@ -61,8 +61,8 @@ def effusion_rates():
 
         return "\n".join(lines), f"{bigger.name}, since it has a molar mass of {bigger.getMass()}"
     elif qType == 2:
-        cmpd1 = compound(getRandomCompound(0,1,1,1,0))
-        cmpd2 = compound(getRandomCompound(0,0,0,1,0))
+        cmpd1 = randomCmpd(0,1,1,1,0)
+        cmpd2 = randomCmpd(0,0,0,1,0)
 
         rate1 = .025 * random.randint(0,20)
         rate2 = rate1 * math.sqrt(cmpd2.getMass() / cmpd1.getMass())
@@ -77,7 +77,7 @@ def gas_laws_problem():
     while not goodQuestion:
         P = randPressure()
         V = randVolume()
-        cmpd = compound(getRandomCompound())
+        cmpd = randomCmpd()
         n = random.randint(1,40) / 40
         moles = randUnit(cmpd, n)
         T = randTemp()
@@ -178,7 +178,7 @@ def gas_stoichiometry(rx_type):
     while True:
         bad = True
         while bad:
-            rx = reaction(randomRx(rx_type))
+            rx = randomRx(rx_type)
             reactants = rx.reactants()
             products = rx.products()
             numReactants = len(reactants)
@@ -186,7 +186,7 @@ def gas_stoichiometry(rx_type):
 
         printStr = reaction_verb(rx)
         for j, i in enumerate(reactants):
-            if rx.typeRx == "special" and j == 1: printStr += rx.misc[2] + " "
+            if rx.typeRx == "special" and j == 1: printStr += rx.misc + " "
             try:
                 printStr += i[0].getName()
             except: printStr += "error generating name"

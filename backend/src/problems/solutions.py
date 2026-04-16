@@ -53,7 +53,7 @@ def dilution():
 def solution_conversions_aqueous():
     moles_solute = random.randint(1,40) / 20
     total_volume = random.randint(1,150) / 50
-    sol = solution(compound(), moles_solute = moles_solute, total_volume = total_volume)
+    sol = solution(randomCmpd(), moles_solute = moles_solute, total_volume = total_volume)
 
     while True:
         choices = [(f"There are {sol.moles_solute} moles of solute.", "How many moles of the solute are there?"), (f"There are {sol.moles_solvent} moles of solvent.", "How many moles of the solvent are there?"),
@@ -85,7 +85,7 @@ def solution_conversions_general():
     moles_solute = random.randint(1,40) / 20
     total_volume = random.randint(1,150) / 50
     solvent = compound(random.choice(list(fpDepressionConstants)))
-    sol = solution(compound(), moles_solute = moles_solute, total_volume = total_volume, solvent = solvent)
+    sol = solution(randomCmpd(), moles_solute = moles_solute, total_volume = total_volume, solvent = solvent)
 
     while True:
         choices = [(f"There are {sol.moles_solute} moles of solute.", "How many moles of the solute are there?"), (f"There are {sol.moles_solvent} moles of solvent.", "How many moles of the solvent are there?"),
@@ -124,7 +124,7 @@ def colligative_properties():
     if bpOrFp: solvent = random.choice(list(bpElevationConstants))
     else: solvent = random.choice(list(fpDepressionConstants))
 
-    sol = solution(compound(getRandomCompound(3,0,1,0,2)), moles_solute= moles_solute, total_volume= total_volume, solvent= compound(solvent))
+    sol = solution(randomCmpd(3,0,1,0,2), moles_solute= moles_solute, total_volume= total_volume, solvent= compound(solvent))
     word = ["boiling", "freezing"][int(bpOrFp)]
 
     while True:
@@ -169,7 +169,7 @@ def molar_mass_from_bp_fp():
 
     givenEmpirical = bool(random.getrandbits(1))
 
-    solute = compound(getRandomCompound(0,0,0,0,1))
+    solute = randomCmpd(0,0,0,0,1)
     if givenEmpirical: solute.multCompound(random.randint(1,5))
     sol = solution(solute, moles_solute= moles_solute, total_volume= total_volume, solvent= compound(solvent))
 
@@ -212,7 +212,7 @@ def henrys_law():
 @problem(54, "Reactions with Solubility Units", SOLUTIONS)
 def reactions_with_solubility_units():
     while True:
-        rx = reaction(randomRx(["double replacement", "special"]))
+        rx = randomRx(["double replacement", "special"])
         reactants = rx.reactants()
         products = rx.products()
         soluableProducts = [cmpd for cmpd, _ in products if cmpd.equation not in ["NO2", "NO", "H2O", "CO2", "NH3",]]
@@ -254,7 +254,7 @@ def reactions_with_solubility_units():
 
 @problem(55, "Hydrates", SOLUTIONS)
 def hydrates():
-    hyd = hydrate(compound(getRandomCompound(1,0,0,0,0)).equation, random.randint(3,8))
+    hyd = hydrate(randomCmpd(1,0,0,0,0).equation, random.randint(3,8))
     t = random.randint(0,4)
     if t == 0:
         el = random.choice(hyd.percentComposition())
@@ -278,6 +278,6 @@ def hydrates():
 
 @problem(56, "Polar vs Nonpolar", SOLUTIONS)
 def polar_vs_nonpolar():
-    cmpd = compound(randCmpdForBonds())
+    cmpd = randCmpdForBonds()
     question = f"Is {cmpd.getName()} polar?"
     return question, ["no", "yes"][int(cmpd.isPolar())]

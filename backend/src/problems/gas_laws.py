@@ -53,7 +53,7 @@ def effusion_rates():
         options.insert(random.randint(0,3), bigger)
 
         for i, j in enumerate(options):
-            if j.type == "diatomic":
+            if j.isDiatomic():
                 gaseous = ""
             else:
                 gaseous = " gaseous"
@@ -179,17 +179,16 @@ def gas_stoichiometry(rx_type):
         bad = True
         while bad:
             rx = reaction(randomRx(rx_type))
-            separatedCmpds = rx.formatRxList()
-            reactants = separatedCmpds[0]
-            products = separatedCmpds[1]
+            reactants = rx.reactants()
+            products = rx.products()
             numReactants = len(reactants)
             if numReactants > 1: bad = False
 
         printStr = reaction_verb(rx)
         for j, i in enumerate(reactants):
-            if len(separatedCmpds) == 3 and  j == 1: printStr += separatedCmpds[2] + " "
+            if rx.typeRx == "special" and j == 1: printStr += rx.misc[2] + " "
             try:
-                printStr += i[0].getNameFromEq()
+                printStr += i[0].getName()
             except: printStr += "error generating name"
             printStr += " and "
 
@@ -239,7 +238,7 @@ def gas_stoichiometry(rx_type):
             if not gasses[i]:
                 currNumMoles = moles[i]
                 currNumMoles = randUnit(cmpd[0], currNumMoles)
-                tempQ += f"There is (are) {currNumMoles[0]} {currNumMoles[1]} of {cmpd[0].getNameFromEq()}"
+                tempQ += f"There is (are) {currNumMoles[0]} {currNumMoles[1]} of {cmpd[0].getName()}"
                 if currNumMoles[1] == "L": tempQ += " (treat it like a gas at STP). "
                 else: tempQ += ". "
                 continue
@@ -247,7 +246,7 @@ def gas_stoichiometry(rx_type):
             pressure = allGasLawInfo[i][0]
             temp = allGasLawInfo[i][2]
 
-            question += f"There is {volume[0]} {volume[1]} of {cmpd[0].getNameFromEq()} at {pressure[0]} {pressure[1]} and {temp[0]} {temp[1]}. "
+            question += f"There is {volume[0]} {volume[1]} of {cmpd[0].getName()} at {pressure[0]} {pressure[1]} and {temp[0]} {temp[1]}. "
             numGassesInReactants += 1
 
         if numGassesInReactants == 0:
@@ -267,6 +266,6 @@ def gas_stoichiometry(rx_type):
         chosenProduct = random.choice(products)
         chosenIndex = cmpds.index(chosenProduct)
         productMoles = randUnit(chosenProduct[0], moles[chosenIndex])
-        question += tempQ + f"How much {chosenProduct[0].getNameFromEq()} is there ({productMoles[1]})?"
+        question += tempQ + f"How much {chosenProduct[0].getName()} is there ({productMoles[1]})?"
         return question, f"{productMoles[0]} {productMoles[1]}"
 

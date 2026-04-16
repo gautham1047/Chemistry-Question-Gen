@@ -26,10 +26,9 @@ def solubility_rules():
 @problem(12, "Writing Chemical Equations", CHEMICAL_REACTIONS, accepts_rx_type=True)
 def writing_chemical_equations(rx_type):
     rx = reaction(randomRx(rx_type))
-    reactants = rx.SkeletonEquation()[0]
     printStr = reaction_verb(rx)
-    for reactant in reactants:
-        printStr += reactant_name(reactant, rx.balanceEq()) + " and "
+    for cmpd, _ in rx.reactants():
+        printStr += reactant_name(cmpd, rx.balanceEq()) + " and "
     printStr = printStr[0:-5]
 
     question = printStr + ". What is the sum of the coefficients"

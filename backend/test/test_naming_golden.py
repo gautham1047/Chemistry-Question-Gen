@@ -73,7 +73,7 @@ def main():
     fails = []
     for formula, expected in GOLDEN.items():
         try:
-            got = compound(formula).getNameFromEq()
+            got = compound(formula).getName()
         except Exception as e:
             got = f"ERR {type(e).__name__}: {e}"
         if got != expected:

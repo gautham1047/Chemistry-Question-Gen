@@ -14,6 +14,9 @@ class reaction:
         self.typeRx = None
         self.misc = None
         self.occurs = True
+        # Lazy-computed and memoized by _computeSkeleton / balanceEq.
+        self._skele_cache = None
+        self._coeffs_cache = None
 
         if inputList == "eq":
             solid_index = []
@@ -120,18 +123,6 @@ class reaction:
         
         return rxStr
 
-    def skeletonStr(self):
-        skeleton = self.SkeletonEquation()
-        rxStr = ""
-        for cmpd in skeleton[0]:
-            rxStr += cmpd.equation + " + "
-        rxStr = rxStr[0:-3]
-        if self.typeRx == "d": rxStr += " -Δ-> "
-        else: rxStr += " ---> "
-        for cmpd in skeleton[1]:
-            rxStr += cmpd.equation + " + "
-        return rxStr[0:-3]
-
     def phaseStr(self):
         if self.phases == None: return str(self)
         reactants, products = self.formatRxList()
@@ -144,7 +135,15 @@ class reaction:
         return rx_str[:-3]
 
     def SkeletonEquation(self) -> list[list[compound]]:
-        # format of output is [[reactant 1 compound,...,reactant n compound], [product 1 compound,...product n compound]]
+        # Returns [[reactant compounds], [product compounds]]. Memoized.
+        # Problem files should prefer reactants() / products() which return
+        # [[cmpd, coeff], ...] pairs. SkeletonEquation is kept for internal use.
+        if self._skele_cache is not None:
+            return self._skele_cache
+        self._skele_cache = self._computeSkeleton()
+        return self._skele_cache
+
+    def _computeSkeleton(self) -> list[list[compound]]:
         match self.typeRx:
             case "s1":
                 m = self.reactantList[0]
@@ -333,9 +332,15 @@ class reaction:
             case _: print(self.typeRx)
 
     def balanceEq(self):
+        if self._coeffs_cache is not None:
+            return self._coeffs_cache
+        self._coeffs_cache = self._computeBalance()
+        return self._coeffs_cache
+
+    def _computeBalance(self):
         rpList = self.SkeletonEquation()
         try: rList = rpList[0]
-        except: 
+        except:
             print([str(i) for i in self.misc])
             raise Exception("bad skeleton equation: " + str(rpList))
         pList = rpList[1]
@@ -418,49 +423,38 @@ class reaction:
 
         return numList
     
-    def formatRxList(self) -> list[list[list[compound | int]]]:
-        coeffients = self.balanceEq()
-        elements = self.SkeletonEquation()
+    def reactants(self) -> list[list]:
+        """Return reactants as [[compound, coefficient], ...]. Canonical public API."""
+        r_cmpds, _ = self.SkeletonEquation()
+        coeffs = self.balanceEq()
+        return [[cmpd, coeffs[i]] for i, cmpd in enumerate(r_cmpds)]
 
-        index = 0
-        reactList = []
-        for i in elements[0]:
-            reactList.append([i,coeffients[index]])
-            index += 1
-        productList = []
-        for i in elements[1]:
-            try: productList.append([i,coeffients[index]])
-            except IndexError: pass
-            # this might lead to some more errors
-            index += 1
-        if self.typeRx == "special": return [reactList, productList, self.misc[2]]
-        return [reactList, productList]
+    def products(self) -> list[list]:
+        """Return products as [[compound, coefficient], ...]. Canonical public API."""
+        r_cmpds, p_cmpds = self.SkeletonEquation()
+        coeffs = self.balanceEq()
+        offset = len(r_cmpds)
+        return [[cmpd, coeffs[offset + i]] for i, cmpd in enumerate(p_cmpds) if offset + i < len(coeffs)]
 
-    def enthalpyFromBonds(self):
-        rx = self.formatRxList()
-        react = 0
-        for i in rx[0]: 
-            react += i[1] * i[0].bondEnergy()
-        prod = 0
-        for i in rx[1]: prod += i[1] * i[0].bondEnergy()
-        try:
-            react = 0
-            for i in rx[0]: react += i[1] * i[0].bondEnergy()
-            prod = 0
-            for i in rx[1]: prod += i[1] * i[0].bondEnergy()
-        except: return f"error finding the enthalpy of {self}"
-
-        return react - prod
-
-    def reactants(self):
-        return self.SkeletonEquation()[0]
-
-    def products(self):
-        return self.SkeletonEquation()[1]
-    
     def allCompounds(self) -> list[compound]:
         reactants, products = self.SkeletonEquation()
         return reactants + products
+
+    def formatRxList(self) -> list:
+        # Legacy shim. New code should use reactants() / products() directly.
+        # For "special" type, tacks on self.misc[2] as a third element (dilute/concentrated/etc).
+        result = [self.reactants(), self.products()]
+        if self.typeRx == "special":
+            result.append(self.misc[2])
+        return result
+
+    def enthalpyFromBonds(self):
+        try:
+            react = sum(coeff * cmpd.bondEnergy() for cmpd, coeff in self.reactants())
+            prod = sum(coeff * cmpd.bondEnergy() for cmpd, coeff in self.products())
+        except Exception:
+            return f"error finding the enthalpy of {self}"
+        return react - prod
 
     def generatePhases(self):
         reactants, products = self.SkeletonEquation()
@@ -524,15 +518,6 @@ class reaction:
             i += 1
         return curr
 
-    def enthalpyFromThermData(self):
-        return self.thermoProfile(0)
-
-    def gibbsFromThermData(self):
-        return self.thermoProfile(1)
-
-    def entropyFromThermData(self):
-        return self.thermoProfile(2)
-
     def generateEqConcs(self, K_eq = None):
         prod_eq, react_eq = self.eqExpression()
         if K_eq == None:
@@ -588,25 +573,6 @@ class reaction:
             return float('inf')
 
         return Q
-
-    def eqConcsFromMissing(self, newProd : list[int], newReact : list[int]):
-        if len(newProd) != len(self.prodEqConcs) or len(newReact) != len(self.reactEqConcs): raise Exception("Invalid equilbrium inputs")
-        if "X" in newProd: blankIndex = 2 * newProd.index("X")
-        elif "X" in newReact: blankIndex = 2 * newReact.index("X") + 1
-        else: raise Exception("Must include unknown X in lists")
-        eqExpression = self.eqExpression()
-
-        curr_K = 1
-        for i, expression in zip(newProd, eqExpression[0]):
-            if i != "X": curr_K *= i ** expression[1]
-        for i, expression in zip(newReact, eqExpression[1]):
-            if i != "X": curr_K /= i ** expression[1]
-
-        if blankIndex % 2 == 0: newProd[blankIndex // 2] = (self.K_eq / curr_K) ** (1/eqExpression[blankIndex % 2][blankIndex // 2][1])
-        else: newReact[blankIndex // 2] = (self.K_eq / curr_K) ** (-1/eqExpression[blankIndex % 2][blankIndex // 2][1])
-        
-        self.reactEqConcs = newReact
-        self.prodEqConcs = newProd
 
     def eqConcsFromIntial(self, newProd : list[int] = None, newReact : list[int] = None):
         if  not newProd: 

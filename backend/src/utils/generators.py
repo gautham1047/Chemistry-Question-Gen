@@ -459,7 +459,6 @@ def randCmpdForBonds(dChance = 0, hChance = 0, aChance = 0, bmChance = 0):
     if choice == "b": 
         eq = randBMForBonds()
         cmpd = make_compound(eq)
-        cmpd.refresh()
         return [cmpd.name, cmpd.equation, "binary molecular"]
 
     raise Exception("Error determining compound")

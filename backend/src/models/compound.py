@@ -13,7 +13,6 @@ class compound:
         if isinstance(compoundList, compound):
             self.name = compoundList.name
             self.equation = compoundList.equation
-            self.type = compoundList.type
             self.charge = compoundList.charge
             self.compound = [list(a) for a in compoundList.compound]
             self._rebuild_dict()
@@ -22,20 +21,20 @@ class compound:
         if compoundList == "e-":
             self.name = "electron"
             self.equation = "e-"
-            self.type = "electron"
             self.charge = -1
             self.compound = []
             self.compoundDict = {}
             return
 
-        if compoundList is None or compoundList == "RANDOM":
+        if compoundList is None:
             compoundList = getRandomCompound()
 
+        is_element = False
         if isinstance(compoundList, list):
             # element list form: [symbol, count, "element"] — [1] is a count, not a formula.
             # compound list form: [name, equation, type]
-            self.type = compoundList[2] if len(compoundList) > 2 else "n/a"
-            if self.type == "element":
+            is_element = len(compoundList) > 2 and compoundList[2] == "element"
+            if is_element:
                 self.name = compoundList[0]
                 self.equation = compoundList[0]
             else:
@@ -43,25 +42,22 @@ class compound:
                 self.equation = compoundList[1]
             parsed_charge = 0
         elif isinstance(compoundList, str):
-            self.name = "Unknown"
-            self.type = "Unknown"
             _, parsed_charge = parse_formula(compoundList)
             # strip any charge suffix from the equation without touching the body
             eq = compoundList
-            if "_" in eq:
-                eq = eq.split("_", 1)[0]
-            elif "^" in eq:
+            if "^" in eq:
                 eq = eq.split("^", 1)[0]
             elif eq and eq != "e-" and eq[-1] in "+-":
                 eq = eq[:-1]
             self.equation = eq
+            self.name = None  # filled below after self.compound is populated
         else:
             raise TypeError(f"compound() got unexpected input: {type(compoundList).__name__}")
 
         self.charge = charge if charge else parsed_charge
 
         # element shorthand: upgrade bare diatomic symbols to their molecular form
-        if self.type == "element":
+        if is_element:
             if self.equation in ["H", "N", "O", "F", "I", "Br", "Cl"]:
                 self.equation += "2"
             elif self.equation == "Hg2":
@@ -69,6 +65,8 @@ class compound:
 
         self.compound = atomsInCompound(self.equation)
         self._rebuild_dict()
+        if self.name is None:
+            self.name = name_from_atoms(self.compound, self.equation)
 
     def _rebuild_dict(self):
         self.compoundDict = {}
@@ -83,9 +81,6 @@ class compound:
     def __hash__(self):
         return hash((self.equation, self.charge))
 
-    def __str__(self):
-        return self.__repr__()
-
     def __repr__(self):
         if self.equation == "e-": return "e-"
         return self.equation + ("_" + str(self.charge)) * (self.charge != 0)
@@ -96,15 +91,11 @@ class compound:
     def getMolarMass(self):
         return sum(getAtomMass(sym) * count for sym, count in self.compound)
     
-    def getParticles(self, moles = 1):
-        return moles * 6.02e+23
-    
     def getMass(self, moles = 1):
         return moles * self.getMolarMass()
-    
+
     def getAtoms(self, moles = 1):
-        atomsPerMolecule = sum(count for _, count in self.compound)
-        return self.getParticles(moles) * atomsPerMolecule
+        return moles * 6.02e+23 * self.totalAtoms()
     
     def percentComposition(self):
         MM = self.getMolarMass()
@@ -113,25 +104,12 @@ class compound:
 
     def getName(self):
         return self.name
-    
-    def getNameFromEq(self, eqOveride=None, cmpdOverride=None):
-        if eqOveride is None or cmpdOverride is None:
-            return name_from_atoms(self.compound, self.equation)
-        return name_from_atoms(cmpdOverride, eqOveride)
-
-    def refresh(self):
-        self.name = self.getNameFromEq()
-        self.compound = atomsInCompound(self.equation)
-        if len(self.compound) == 1: self.type = "element"
 
     def multCompound(self, factor):
-        toMake = []
-        for i in self.compound:
-            newNum = i[1] * factor
-            toMake.append([i[0], newNum])
-        for i in self.compoundDict:
-            self.compoundDict[i] *= factor
-        self.compound = toMake
+        self.compound = [[sym, count * factor] for sym, count in self.compound]
+        self._rebuild_dict()
+        self.equation = compoundToString(self.compound)
+        self.name = name_from_atoms(self.compound, self.equation)
 
     def isSoluable(self):
         if self.equation in ["O2", "CO2", "NH3", "N2", "F2", "Cl2", "I2", "He", "Ne", "Ar", "Kr", "Xe", "Rn", "H2O"]:
@@ -158,130 +136,85 @@ class compound:
     def setTemp(self, temp):
         self.temp = temp
     
-    def raiseTemp(self, finalTemp, moles, fp, bp, heatOfFusion, heatOfVaporization, sSpecificHeat, lSpecificHeat, gSpecificHeat): # for example, water would be (finalTemp, moles, 0, 100, 6.01, 40.7, 1.7, 4.18, 2.1)
-        if self.temp < fp: startState = "solid"
-        elif self.temp < bp: startState = "liquid"
-        else: startState = "gas"
-
-        if finalTemp < fp: finalState = "solid"
-        elif finalTemp < bp: finalState = "liquid"
-        else: finalState = "gas"
-
+    def raiseTemp(self, finalTemp, moles, fp, bp, hF, hV, sSH, lSH, gSH):
+        # Returns heat (kJ) required to bring the sample from self.temp to finalTemp.
+        # Negative = released. Water example: (T, moles, 0, 100, 6.01, 40.7, 1.7, 4.18, 2.1)
         if finalTemp == self.temp:
-            if finalTemp == fp: return heatOfFusion * moles
-            if finalTemp == bp: return heatOfVaporization * moles
+            if finalTemp == fp: return hF * moles
+            if finalTemp == bp: return hV * moles
             return 0
 
-        heat = 0
-        
         mass = self.getMass(moles)
 
-        #print(f"startState: {startState}, finalState: {finalState}")
+        def enthalpy(T):
+            # Cumulative enthalpy (kJ) with fusion/vap steps baked in at fp/bp.
+            if T < fp:
+                return sSH * mass * T / 1000
+            h = sSH * mass * fp / 1000 + hF * moles
+            if T < bp:
+                return h + lSH * mass * (T - fp) / 1000
+            return h + lSH * mass * (bp - fp) / 1000 + hV * moles + gSH * mass * (T - bp) / 1000
 
-        if startState == finalState: 
-            if startState == "solid": return sSpecificHeat * mass * (finalTemp - self.temp) / 1000
-            if startState == "liquid": return lSpecificHeat * mass * (finalTemp - self.temp) / 1000
-            if startState == "gas": return gSpecificHeat * mass * (finalTemp - self.temp) / 1000
-
-        if startState == "solid": heat += heatOfFusion * moles + sSpecificHeat * mass * (fp - self.temp) / 1000 
-        if finalState == "gas": heat += heatOfVaporization * moles + gSpecificHeat * mass * (finalTemp - bp) / 1000 
-        if startState == "gas": heat -= heatOfVaporization * moles + gSpecificHeat * mass * (self.temp - bp) / 1000 
-        if finalState == "solid": heat -= heatOfFusion * moles + sSpecificHeat * mass * (fp - finalTemp) / 1000 
-        if startState == "solid" and finalState == "liquid": heat += lSpecificHeat * mass * (finalTemp - fp) / 1000 
-        if startState == "gas" and finalState == "liquid": heat -= lSpecificHeat * mass * (bp - finalTemp) / 1000 
-        if startState == "liquid" and finalState == "solid": heat -= lSpecificHeat * mass * (self.temp - fp) / 1000 
-        if startState == "liquid" and finalState == "gas": heat -= lSpecificHeat * mass * (bp - self.temp) / 1000 # this is being added, since finalTemp - bp is negative 
-
+        heat = enthalpy(finalTemp) - enthalpy(self.temp)
         self.temp = finalTemp
-        return heat # heat is the amount of heat being used (if its negative, its how much heat is being released) in kJ
-    
-    def heat(self, heatSupplied, moles, fp, bp, heatOfFusion, heatOfVaporization, sSpecificHeat, lSpecificHeat, gSpecificHeat): # for example, water would be (heatSupplied, moles, 0, 100, 6.01, 40.7, 1.7, 4.18, 2.1)
-        if self.temp < fp: startState = "solid"
-        elif self.temp < bp: startState = "liquid"
-        else: startState = "gas"
+        return heat
 
-        if startState == "solid" and sSpecificHeat == 0: startState = "liquid"
-        if startState == "liquid" and lSpecificHeat == 0: startState = "gas"
-
+    def heat(self, heatSupplied, moles, fp, bp, hF, hV, sSH, lSH, gSH):
+        # Returns new temperature after absorbing heatSupplied joules.
+        # Walks phase segments until budget exhausted.
         mass = self.getMass(moles)
-        # print(startState)
-        if heatSupplied > 0: # for heating
-            if startState == "solid":
-                # print("s")
-                finalTemp = heatSupplied / (mass * sSpecificHeat) + self.temp
-                # print(f"finalTemp: {finalTemp}")
-                if finalTemp < fp:
-                    self.temp = finalTemp
-                    return finalTemp
-                heatSupplied -= mass * sSpecificHeat * (fp - self.temp)
-                startState = "liquid"
-                self.temp = fp
-                    
-                heatSupplied -= heatOfFusion * moles * 1000
-                if heatSupplied <= 0: 
-                    return fp
-            # print(f"heatSupplied: {heatSupplied}")
-            
-            if startState == "liquid":
-                # print("l")
-                finalTemp = heatSupplied / (mass * lSpecificHeat) + self.temp
-                # print(f"finalTemp: {finalTemp}")
-                if finalTemp < bp:
-                    self.temp = finalTemp
-                    return finalTemp
-                heatSupplied -= mass * lSpecificHeat * (bp - self.temp)
-                startState = "gas"
-                self.temp = bp
+        sh = {"s": sSH, "l": lSH, "g": gSH}
 
-                heatSupplied -= heatOfVaporization * moles * 1000
-                # print(f"heatSupplied: {heatSupplied}")
-                if heatSupplied <= 0:
-                    return bp
-            
-            # print("g")
-            finalTemp = heatSupplied / (mass * gSpecificHeat) + self.temp
-            self.temp = finalTemp
-            return finalTemp
-        else: # for cooling
-            if startState == "gas":
-                # print("g")
-                finalTemp = heatSupplied / (mass * gSpecificHeat) + self.temp
-                if finalTemp > bp:
-                    self.temp = finalTemp 
-                    return finalTemp
-                heatSupplied += mass * gSpecificHeat * (self.temp - bp)
-                startState = "liquid"
-                self.temp = bp
-            
-                heatSupplied += heatOfVaporization * moles * 1000
-                if heatSupplied > 0:
-                    self.temp = bp
-                    return bp
-            
-            if startState == "liquid":
-                # print("l")
-                finalTemp = heatSupplied / (mass * lSpecificHeat) + self.temp
-                if finalTemp > fp:
-                    self.temp = finalTemp
-                    return finalTemp
-                heatSupplied += mass * lSpecificHeat * (self.temp - fp)
-                startState = "solid"
-                self.temp = fp
-            
-                heatSupplied += heatOfFusion * moles * 1000
-                if heatSupplied > 0:
-                    self.temp = fp
-                    return fp
+        if self.temp < fp: phase = "s"
+        elif self.temp < bp: phase = "l"
+        else: phase = "g"
+        # legacy: promote past phases with zero specific heat (no data for that state)
+        if phase == "s" and sSH == 0: phase = "l"
+        if phase == "l" and lSH == 0: phase = "g"
 
-            # print("s")
-            # Guard against division by zero when sSpecificHeat is 0
-            if sSpecificHeat == 0:
-                # If no solid specific heat data, substance stays at freezing point
-                self.temp = fp
-                return fp
-            finalTemp = heatSupplied / (mass * sSpecificHeat) + self.temp
-            self.temp = finalTemp
-            return finalTemp
+        if heatSupplied >= 0:
+            # heating: s →(hF@fp)→ l →(hV@bp)→ g
+            transitions = [("s", fp, hF * moles * 1000, "l"),
+                           ("l", bp, hV * moles * 1000, "g")]
+            for cur, boundary, pc, nxt in transitions:
+                if phase != cur: continue
+                c = mass * sh[phase]
+                span = c * (boundary - self.temp)
+                if heatSupplied < span:
+                    self.temp += heatSupplied / c
+                    return self.temp
+                heatSupplied -= span
+                self.temp = boundary
+                if heatSupplied <= pc:
+                    return boundary
+                heatSupplied -= pc
+                phase = nxt
+            self.temp += heatSupplied / (mass * sh[phase])
+            return self.temp
+
+        # cooling: g →(hV@bp)→ l →(hF@fp)→ s; track positive "to remove" budget
+        remaining = -heatSupplied
+        transitions = [("g", bp, hV * moles * 1000, "l"),
+                       ("l", fp, hF * moles * 1000, "s")]
+        for cur, boundary, pc, nxt in transitions:
+            if phase != cur: continue
+            c = mass * sh[phase]
+            span = c * (self.temp - boundary)
+            if remaining < span:
+                self.temp -= remaining / c
+                return self.temp
+            remaining -= span
+            self.temp = boundary
+            if remaining < pc:
+                return boundary
+            remaining -= pc
+            phase = nxt
+        # solid tail — guard against missing solid SH data
+        if sh[phase] == 0:
+            self.temp = fp
+            return fp
+        self.temp -= remaining / (mass * sh[phase])
+        return self.temp
     
     def isMolecular(self):
         for el in self.compound:
@@ -308,13 +241,6 @@ class compound:
 
     def isElement(self):
         return all([i.islower() and not i.isdigit() for i in self.equation[1:]])
-
-    def hasSingleElement(self):
-        """True if the compound contains exactly one distinct element (Na, H2, P4, ...)."""
-        return len(self.compoundDict) == 1
-
-    def setEq(self, eq):
-        self.equation = eq
 
     def uniqueEls(self):
         unique = set([])
@@ -470,18 +396,9 @@ class compound:
     def isWater(self):
         return self.equation == "H2O"
 
-    def isAqOrGas(self): 
-        return self.isMolecular() or self.isIonic() or self.isElement()
-
-    def gen_K_sp(self):
-        Ksp = KspDict.get(self.equation)
-        if Ksp == None: return random.choice(list(KspDict.values()))
-
-        return Ksp
-    
     def solubility_rx(self, mConc=0, nConc=0):
         if self.K_sp is None:
-            self.K_sp = self.gen_K_sp()
+            self.K_sp = KspDict.get(self.equation) or random.choice(list(KspDict.values()))
 
         cation, anion = self._dissociate()
         return make_reaction(["s", [self],
@@ -568,25 +485,22 @@ class hydrate(compound):
         super().__init__(equation)
 
         self.anhydrous = self.equation
-        self.anhydrousCmpd = self.compound
-
+        self.name = self.name + " " + prefixes.get(numWater) + "hydrate"
         self.equation += f" 🞄 {numWater}H2O"
-        self.type = "hydrate"
         self.numWater = numWater
+
         hGood, oGood = False, False
         for i in self.compound:
             if i[0] == "H":
                 i[1] += 2 * numWater
                 hGood = True
-            if i[0] == "O": 
+            if i[0] == "O":
                 i[1] += numWater
                 oGood = True
 
         if not hGood: self.compound.append(["H", 2 * numWater])
         if not oGood: self.compound.append(["O", numWater])
-
-    def getNameFromEq(self):
-        return super().getNameFromEq(eqOveride=self.anhydrous,cmpdOverride=self.anhydrousCmpd) + " " + prefixes.get(self.numWater) + "hydrate"
+        self._rebuild_dict()
 
     def isPolar(self): return True
 

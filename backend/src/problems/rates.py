@@ -18,7 +18,7 @@ def basic_concentration():
 def method_of_initial_rates():
     rx = reaction(randomRx())
     while True:
-        reactants = rx.formatRxList()[0]
+        reactants = rx.reactants()
         if rx.molecularity() == 1:
             rx = reaction(randomRx())
             continue

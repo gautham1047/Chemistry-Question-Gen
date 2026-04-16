@@ -17,7 +17,7 @@ def solubility_calculations():
     amnt = random.randint(1,20) * 25
     mol = solubilities.get(cmpd.equation)[temp] * amnt / 100 / cmpd.getMass()
     n = randUnit(cmpd, mol)
-    question = f"How much {cmpd.getNameFromEq()} is soluble in {amnt} g of H2O at {temps[temp]} degrees C ({n[1]})?"
+    question = f"How much {cmpd.getName()} is soluble in {amnt} g of H2O at {temps[temp]} degrees C ({n[1]})?"
     return question, n[0]
 
 @problem(47, "Determining Saturation", SOLUTIONS)
@@ -33,7 +33,7 @@ def determining_saturation():
     changeBool = random.randint(-1,1)
     accAmnt = theoretical + changeBool * .05 * random.randint(1,10) * theoretical
 
-    question = f"Is a solution of {accAmnt} of {cmpd.getNameFromEq()} super-/un-/saturated in {amnt} g of H2O at {temps[temp]} degrees C?"
+    question = f"Is a solution of {accAmnt} of {cmpd.getName()} super-/un-/saturated in {amnt} g of H2O at {temps[temp]} degrees C?"
     return question, ["unsaturated", "saturated", "supersaturated"][changeBool + 1]
 
 @problem(48, "Dilution", SOLUTIONS)
@@ -77,7 +77,7 @@ def solution_conversions_aqueous():
 
         if b: break
 
-    question = f"Consider an aqueous solution of {sol.solute.getNameFromEq()}. Remember that the density of water is 1 g/mL and ignore the solute's volume. {choice_one[0]} {choice_two[0]} {chosen_answer[1]}"
+    question = f"Consider an aqueous solution of {sol.solute.getName()}. Remember that the density of water is 1 g/mL and ignore the solute's volume. {choice_one[0]} {choice_two[0]} {chosen_answer[1]}"
     return question, chosen_answer[0]
 
 @problem(50, "Solutions Unit Conversions (general)", SOLUTIONS)
@@ -112,7 +112,7 @@ def solution_conversions_general():
 
         if b: break
 
-    question = f"Consider a solution, which is not necessarily aqueous, containing {sol.solute.getNameFromEq()} (solute). Ignore the solute's volume. {choice_one[0]} {choice_two[0]} {choice_three[0]} {chosen_answer[1]}"
+    question = f"Consider a solution, which is not necessarily aqueous, containing {sol.solute.getName()} (solute). Ignore the solute's volume. {choice_one[0]} {choice_two[0]} {choice_three[0]} {chosen_answer[1]}"
     return question, chosen_answer[0]
 
 @problem(51, "Colligative Properties", SOLUTIONS)
@@ -149,7 +149,7 @@ def colligative_properties():
 
         if b: break
 
-    question = f"Consider a solution, which is not necessarily aqueous, containing {sol.solute.getNameFromEq()} (solute). Ignore the solute's volume. {choice_one[0]} {choice_two[0]} What is the {word} point?"
+    question = f"Consider a solution, which is not necessarily aqueous, containing {sol.solute.getName()} (solute). Ignore the solute's volume. {choice_one[0]} {choice_two[0]} What is the {word} point?"
     question += f" The molar mass of the solvent is {sol.solvent.getMass()} g/mol."
     if bpOrFp:
         question += f" The boiling point of the solvent is {miscBps.get(solvent)} and Kb is {bpElevationConstants.get(solvent)}"
@@ -213,23 +213,22 @@ def henrys_law():
 def reactions_with_solubility_units():
     while True:
         rx = reaction(randomRx(["double replacement", "special"]))
-        separatedCmpds = rx.formatRxList()
-        products = rx.SkeletonEquation()[1]
-        reactants = rx.SkeletonEquation()[0]
-        soluableProducts = [i for i in products if i.equation not in ["NO2", "NO", "H2O", "CO2", "NH3",]]
+        reactants = rx.reactants()
+        products = rx.products()
+        soluableProducts = [cmpd for cmpd, _ in products if cmpd.equation not in ["NO2", "NO", "H2O", "CO2", "NH3",]]
         if compound("NO2") in soluableProducts: soluableProducts.remove(compound("NO2"))
         if len(soluableProducts) != 0: break
 
     printStr = reaction_verb(rx)
-    for reactant in reactants:
-        printStr += reactant_name(reactant, rx.balanceEq()) + " and "
+    for cmpd, _ in reactants:
+        printStr += reactant_name(cmpd, rx.balanceEq()) + " and "
     question = printStr[0:-5] + ". "
 
     solutions_list : list[solution]= []
     minMol = 99
     minIndex = 0
     i = 0
-    for cmpd in reactants:
+    for cmpd, _ in reactants:
         mol = random.randint(1,40) / 20
         if mol < minMol:
             minMol = mol
@@ -242,10 +241,10 @@ def reactions_with_solubility_units():
 
     for sol in solutions_list: question += f"You have {round_sig(sol.volume)} L of a {round_sig(sol.molarity())} M aqueous solution of {sol.solute.equation}. "
     finalProd = random.choice(soluableProducts)
-    for i in separatedCmpds[1]:
-        if i[0] == finalProd: prodCoeff = i[1]
+    for cmpd, coeff in products:
+        if cmpd == finalProd: prodCoeff = coeff
 
-    minCoeff = separatedCmpds[0][minIndex][1]
+    minCoeff = reactants[minIndex][1]
     prodMol = minMol / minCoeff * prodCoeff
     vol = random.randint(1,150) / 50
     prodSol = solution(finalProd, moles_solute = prodMol, total_volume= vol)
@@ -280,5 +279,5 @@ def hydrates():
 @problem(56, "Polar vs Nonpolar", SOLUTIONS)
 def polar_vs_nonpolar():
     cmpd = compound(randCmpdForBonds())
-    question = f"Is {cmpd.getNameFromEq()} polar?"
+    question = f"Is {cmpd.getName()} polar?"
     return question, ["no", "yes"][int(cmpd.isPolar())]

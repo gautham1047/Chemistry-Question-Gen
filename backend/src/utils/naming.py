@@ -166,7 +166,20 @@ def _name_ternary_ionic(equation):
 
 
 def name_from_atoms(atoms, equation):
-    """Top-level name dispatch. Matches legacy `compound.getNameFromEq` output."""
+    """Top-level name dispatch. Matches legacy `compound.getNameFromEq` output.
+
+    Returns `equation` as a safe fallback if any internal lookup fails
+    (e.g. `acidNames.get(body)` returning None for unusual formulas like H3O).
+    The legacy monolithic method had the same safety net via its trailing
+    bare-except; preserving it here means callers can always rely on a str.
+    """
+    try:
+        return _dispatch(atoms, equation)
+    except Exception:
+        return equation
+
+
+def _dispatch(atoms, equation):
     if equation in SPECIAL_CMPDS:
         return SPECIAL_CMPDS[equation]
 

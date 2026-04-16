@@ -123,13 +123,23 @@ The underscore branch in `parse_formula` can now be removed — but wait until a
 - [compound.py:387](src/models/compound.py#L387) `bondEnergy` monatomic check
 - [solution.py:142](src/models/solution.py#L142) `particlesPerSolute`
 
-### I. Replace `"RANDOM"` magic sentinel entirely — **next up**
+### ~~I. Replace `"RANDOM"` magic sentinel entirely~~ ✅ Done
 
-Constructor at [compound.py:31](src/models/compound.py#L31) still accepts both `None` and `"RANDOM"`. Drop `"RANDOM"`, grep and migrate the few remaining call sites. Low priority, mechanical.
+No external callers passed `"RANDOM"` — just dropped the branch from `__init__`. Constructor now only accepts `None` for "give me a random compound".
 
-### J. `refresh()` audit — [compound.py:219-222](src/models/compound.py#L219-L222)
+### ~~J. `refresh()` audit~~ ✅ Done
 
-Re-parses `self.equation` and re-computes `self.compound`. Now that `_rebuild_dict()` exists, `refresh()` should call it. Also: given the new canonical constructor, is `refresh()` even needed? Check `multCompound` — it mutates `self.compound` in place and updates `compoundDict` separately, which could just re-call `_rebuild_dict()`.
+Several changes:
+
+1. **`__init__` now eagerly populates `self.name`** for string-constructed compounds via `name_from_atoms(...)`. Previously it left `self.name = "Unknown"` and relied on external callers to call `refresh()`. Eager naming means `cmpd.name` is always meaningful right after construction.
+
+2. **`refresh()` simplified** — keeps the re-parse of `self.equation` (for callers that mutate it directly) but now goes through `_rebuild_dict()` and `name_from_atoms()` instead of the legacy string-parsing code path. Docstring warns against calling it after `multCompound` (which would undo the in-place mutation by re-parsing equation).
+
+3. **`name_from_atoms` made crash-safe** — added a top-level `try/except` that returns `equation` as fallback. The internal dispatch was moved to `_dispatch()`. Needed because eager naming in `__init__` started exercising formulas like `"H3O"` that the original monolithic method never got called on (e.g. `acidNames.get("O")` returns `None`, which the original code would have crashed on too, but only in unreachable paths). The legacy method had an equivalent safety net via its trailing bare-except.
+
+### Bonus — legacy `_+N` branch removal from `parse_formula`
+
+Now that TODO G is done and no call sites use `compound("H_+1")`-style strings, the underscore branch is gone from [parsing.py:parse_formula](src/utils/parsing.py#L5) and from the equation-stripping code in [compound.py](src/models/compound.py). Docstring updated. Only `^N+` / `+-` / bare forms remain.
 
 ---
 
@@ -142,10 +152,69 @@ Re-parses `self.equation` and re-computes `self.compound`. Now that `_rebuild_di
 
 ---
 
+### K. Dead-method + dead-field audit ✅ Done
+
+Full audit of compound.py methods and fields. Net: **603 → 510 lines** (−93 across two sub-passes).
+
+**Methods deleted** (all with zero or redundant callers):
+- `__str__` — Python default already delegates to `__repr__`
+- `getParticles` — trivial `moles * 6.02e23` wrapper; inlined into `getAtoms`
+- `hasSingleElement`, `setEq`, `isAqOrGas` — zero callers anywhere
+- `gen_K_sp` — single caller (`solubility_rx`); inlined
+- `refresh` — all 4 callers ([stoichiometry.py:31,73](src/problems/stoichiometry.py#L31), [thermochemistry.py:17](src/problems/thermochemistry.py#L17), [generators.py:462](src/utils/generators.py#L462)) were immediately post-construction with no intervening `self.equation` mutation, so redundant with eager naming in `__init__`. All 4 calls removed, then method deleted.
+- `getNameFromEq` + `hydrate.getNameFromEq` — since `__init__` eagerly populates `self.name` via `name_from_atoms`, `getNameFromEq()` and `getName()` return identical values for base `compound`. The `eqOveride`/`cmpdOverride` params were only used by hydrate's override. Migrated all 23 callers across 6 files (`gas_laws`, `solutions`, `stoichiometry`, `thermochemistry`, `_helpers`, `test_naming_golden`) to `.getName()`. Hydrate now sets `self.name` directly in `__init__`: `self.name = self.name + " " + prefixes.get(numWater) + "hydrate"` (super already populated the anhydrous name).
+
+**Fields deleted**:
+- `self.type` — the only external read was [gas_laws.py:56](src/problems/gas_laws.py#L56) `j.type == "diatomic"`, which was **always False** because no code path ever assigned `"diatomic"` (a latent bug; intent was clearly "is H2/N2/etc"). Fixed to `j.isDiatomic()`. Internal use (`self.type == "element"` in __init__ diatomic-upgrade branch) replaced with a local `is_element` bool. `hydrate.type = "hydrate"` was write-only. All assignments removed.
+- `hydrate.anhydrousCmpd` — was only read by the now-deleted `hydrate.getNameFromEq`. Gone.
+
+**Bonus fix**: added a missing `self._rebuild_dict()` call in `hydrate.__init__` after the in-place water-atom mutation — `compoundDict` was previously stale post-construction for hydrates.
+
+### L. `multCompound` state-consistency fix ✅ Done
+
+`multCompound` was a landmine: it mutated `self.compound` and `self.compoundDict` but left `self.equation` and `self.name` stale. Both current callers ([chemical_quantities.py:50](src/problems/chemical_quantities.py#L50), [solutions.py:173](src/problems/solutions.py#L173)) dodged it by using `getEq()` / `getMolarMass()` / `percentComposition()` (all compound-list-driven) and never touching `.name` or `.equation` post-multiply. Reading `chemical_quantities.py:45` — `str(mult * myCompound.getMolarMass())` pre-computes the multiplied molar mass *before* the mutation — suggests the author hit the inconsistency and worked around it.
+
+Fixed by having `multCompound` rebuild equation + name via `compoundToString` and `name_from_atoms`. Compound is now fully consistent post-call.
+
+### M. `raiseTemp` / `heat` streamline ✅ Done
+
+Both methods were classic phase-walk state machines drowning in if/elif branches.
+
+**`raiseTemp`** (37 → 13 lines): rewrote as a cumulative-enthalpy function. `heat = enthalpy(T_final) - enthalpy(T_start)` where `enthalpy(T)` bakes the fusion/vaporization discontinuities into the cumulative sum at `fp`/`bp`. Side-effect: **fixes two latent bugs** in the original (missing liquid-segment contribution on solid↔gas transitions; wrong sign on liquid→gas vaporization). Problem #15 pass rate 99/100 → 100/100.
+
+**`heat`** (~75 → ~40 lines): replaced the mirrored heating/cooling if-ladders with two short segment-walk loops driven by a `transitions` list `[(phase, boundary, phase_change_joules, next_phase), ...]`. Preserves exact edge-case semantics (heating uses `<=` on phase-change budget check, cooling uses `<`; zero-solid-SH falls back to fp).
+
+### N. reaction.py API cleanup + problem migration ✅ Done
+
+Dead code removed: `skeletonStr`, `enthalpyFromThermData`, `gibbsFromThermData`, `entropyFromThermData`, `eqConcsFromMissing`, plus a dead pre-try block in `enthalpyFromBonds`.
+
+**Memoization**: `SkeletonEquation()` and `balanceEq()` now cache on `self._skele_cache` / `self._coeffs_cache` (implementations moved to `_computeSkeleton` / `_computeBalance`). These are the two hot paths that previously recomputed on every call site.
+
+**New canonical API**: `rx.reactants()` and `rx.products()` both return `[[compound, coeff], ...]` pairs. `allCompounds()` returns a flat list. `formatRxList()` is now a legacy shim (still used internally by `reaction.py` + `solution.py`; kept for now).
+
+**Problem-file migration**: all external `rx.SkeletonEquation()[0]` / `[1]` and `rx.formatRxList()` usage is gone. Migrated files: `stoichiometry.py`, `chemical_reactions.py`, `solutions.py`, `gas_laws.py`, `thermochemistry.py`, `rates.py`. Special-type qualifier text (old `len(separatedCmpds) == 3` check) now reads `rx.typeRx == "special"` + `rx.misc[2]`. Tests held at 70/73 (same three pre-existing flakies).
+
+### Audit summary — what's left in compound.py is all live
+
+Every remaining method has confirmed callers:
+- `raiseTemp` → `thermochemistry.py:43`
+- `heat` → `thermochemistry.py:206`
+- `isSoluable` → `chemical_reactions.py`, `generators.py`, `solution.py`, `reaction.py`
+- `bondOrder`, `sigmaBonds`, `piBonds`, `VESPR`, `bondEnergy`, `covalentBonds` → `periodic_trends_and_bonds.py`, `reaction.py`, `generators.py`
+- `oxidation_numbers`, `solubility_rx` → redox + solubility problem paths
+- etc.
+
+---
+
 ## How to resume
 
-1. Re-read this file.
-2. `python test/test_all_problems.py` — confirm still at 68+/73. Current stable range is **68–70/73**; all failing problems are pre-existing flakies at 92–99% pass rate (62 Equilibrium Concentrations, 72 Electroplating, 73 Nuclear Decay, plus intermittent single-run flakes on 13/14/15/21/49/50/51/54).
-3. `python test/test_naming_golden.py` — must be **44/44**. Any mismatch is a user-visible regression.
-4. Next tasks in order: **I** (drop `"RANDOM"` sentinel — mechanical) → **J** (audit `refresh()`) → then consider removing the underscore branch in `parse_formula` now that TODO G is done.
-5. Run the full suite after **every** change in [compound.py](src/models/compound.py) — it's a hotspot and regressions show up immediately.
+Compound.py is audited end-to-end (TODOs A–K done). Next useful moves:
+
+1. **Investigate the three pre-existing flakies** — `#62 Calculating Equilibrium Concentrations from Initial`, `#72 Electroplating`, `#73 Nuclear Decay`. Occasionally `#15 Heat of Physical Change` also flakes when `random.randint` bounds invert for compounds whose bp < -100 (C6H6 seen once). None in compound code path.
+2. **Move on to other files** — [reaction.py](src/models/reaction.py) and [solution.py](src/models/solution.py) are the next big targets; reaction.py especially has bare-except and string-splicing patterns similar to what compound.py had before.
+
+### Session hygiene
+
+- `python test/test_all_problems.py` — target **68+/73**, current stable range **68–70/73**.
+- `python test/test_naming_golden.py` — must be **44/44**. Any mismatch is a user-visible regression in question text.
+- Run both suites after any compound.py / naming.py / parsing.py change.

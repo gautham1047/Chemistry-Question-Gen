@@ -14,7 +14,6 @@ def heat_of_physical_change():
         cmpd = compound("H2O")
     else:
         cmpd = compound(random.choice(list(heatOfPhysicalChanges.keys())))
-    cmpd.refresh()
     fp, bp, heatOfFusion, heatOfVaporization, sSpecificHeat, lSpecificHeat, gSpecificHeat = heatOfPhysicalChanges.get(cmpd.equation)
     startTemp = random.randint(-100, 150)
     try:
@@ -123,9 +122,8 @@ def coffee_cup_calorimetry():
 @problem(17, "Bomb Calorimetry", THERMOCHEMISTRY, accepts_rx_type=True)
 def bomb_calorimetry(rx_type):
     rx = reaction(randomRx(rx_type))
-    separatedCmpds = rx.formatRxList()
-    reactants = separatedCmpds[0]
-    products = separatedCmpds[1]
+    reactants = rx.reactants()
+    products = rx.products()
 
     printStr = reaction_verb(rx)
 
@@ -177,7 +175,7 @@ def bomb_calorimetry(rx_type):
     for i, cmpd in enumerate(reactants):
         name = heatList[i][0]
         if "(g" not in name and "(l" not in name and "," not in name and "(s" not in name:
-            name = compound(name).getNameFromEq()
+            name = compound(name).getName()
         amount = randUnit(cmpd[0], moles[i])
         amount = str(amount[0]) + " " + amount[1]
         printStr += f"There is {amount} of {name}. "
@@ -188,7 +186,7 @@ def bomb_calorimetry(rx_type):
             validHeat = False
         if validHeat:
             name = cmpd[0]
-            name = compound(name).getNameFromEq()
+            name = compound(name).getName()
             heatOfCurrentCmpd = cmpd[1]
             if cmpd in products:
                 heatOfCurrentCmpd *= -1

@@ -18,7 +18,7 @@ _NITRIC_CONCENTRATED_COEFFS = [[4, 1, 1, 2, 2], [1, 4, 1, 2, 2]]
 
 def reactant_name(cmpd, coefficients):
     """Return a compound's display name, with nitric-acid dilution inferred from coefficients."""
-    name = cmpd.getNameFromEq()
+    name = cmpd.getName()
     if name == "nitric acid":
         coefficients = list(coefficients)
         if coefficients in _NITRIC_DILUTE_COEFFS:

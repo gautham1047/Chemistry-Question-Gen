@@ -1,5 +1,6 @@
 from chemData import *
 from src import *
+import random
 import src.problems  # triggers registration
 from src.problem_registry import get_modes, invoke_problem
 from src.problems._helpers import polyatomic_ion_test

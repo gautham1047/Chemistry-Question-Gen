@@ -4,6 +4,7 @@ __pycache__/
 
 # VSCode
 .vscode/
+.claire/
 
 # Test files
 chemTest.py

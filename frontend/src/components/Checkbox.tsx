@@ -8,15 +8,14 @@ interface CheckboxProps {
 
 const Checkbox: React.FC<CheckboxProps> = ({ label, checked, onChange }) => {
   return (
-    <label className="flex items-center cursor-pointer mb-3 pl-9 relative text-dark-olive font-sans text-base select-none">
+    <label className="flex items-center gap-2.5 py-1.5 cursor-pointer text-sm text-slate-200 select-none">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="absolute opacity-0 cursor-pointer h-0 w-0 peer"
+        className="w-4 h-4 border-slate-600 bg-slate-800 text-cyan-500 accent-cyan-500 cursor-pointer"
       />
-      <span className="absolute left-0 top-0 h-6 w-6 bg-cream border-2 border-border-dark peer-checked:bg-teal peer-checked:border-teal after:content-[''] after:absolute after:hidden peer-checked:after:block after:left-[7px] after:top-[3px] after:w-[6px] after:h-[11px] after:border-white after:border-r-[3px] after:border-b-[3px] after:rotate-45"></span>
-      {label}
+      <span>{label}</span>
     </label>
   );
 };

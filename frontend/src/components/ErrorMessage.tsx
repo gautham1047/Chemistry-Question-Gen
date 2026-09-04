@@ -7,14 +7,14 @@ interface ErrorMessageProps {
 
 const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onDismiss }) => {
   return (
-    <div className="bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-      <span className="block sm:inline">{message}</span>
+    <div className="bg-red-950/50 border border-red-800 text-red-300 px-4 py-2.5 text-sm mb-4 flex items-center justify-between" role="alert">
+      <span>{message}</span>
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="absolute top-0 bottom-0 right-0 px-4 py-3"
+          className="text-red-400 hover:text-red-200 ml-4 font-bold text-lg leading-none cursor-pointer"
         >
-          <span className="text-2xl">&times;</span>
+          &times;
         </button>
       )}
     </div>

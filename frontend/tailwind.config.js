@@ -7,15 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        'bg-primary': '#545f66',
-        'bg-secondary': '#2f0a28',
-        'highlight': '#829399',
-        'highlight-alt': '#92b5b2',
-        'text-primary': '#d5cbcd',
-        'text-secondary': '#2f0a28',
-      },
-      fontFamily: {
-        sans: ['Verdana', 'sans-serif'],
+        'bg-primary': '#0f172a',
+        'bg-secondary': '#1e293b',
+        'highlight': '#334155',
+        'highlight-alt': '#0891b2',
+        'text-primary': '#f8fafc',
+        'text-secondary': '#94a3b8',
+        'accent': '#06b6d4',
+        'accent-hover': '#0891b2',
+        'success': '#10b981',
       },
     },
   },

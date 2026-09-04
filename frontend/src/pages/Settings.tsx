@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import api from '../api/apiClient';
+import type { Category } from '../types';
 import { Header } from '../components/Header';
 import Button from '../components/Button';
 import Checkbox from '../components/Checkbox';
 import RadioButton from '../components/RadioButton';
+import { styles } from '../styles/theme';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { state, updateSettings } = useAppContext();
+  const { state, updateSettings, setNumQuestions } = useAppContext();
 
+  const [categories, setCategories] = useState<Category[]>([]);
   const [reactionTypes, setReactionTypes] = useState({
     synthesis: state.settings.reactionTypes.includes('synthesis'),
     decomposition: state.settings.reactionTypes.includes('decomposition'),
@@ -19,24 +22,16 @@ const Settings = () => {
     doubleReplacement: state.settings.reactionTypes.includes('double replacement'),
   });
 
-  const [polyatomicLevel, setPolyatomicLevel] = useState(state.settings.polyatomicLevel);
-  const [unit, setUnit] = useState(state.settings.unit);
+  const [polyatomicLevel, setPolyatomicLevel] = useState(state.settings.polyatomicLevel ?? 2);
+  const [selectedUnit, setSelectedUnit] = useState<number>(state.settings.unit ?? 0);
+  const [batchCount, setBatchCount] = useState<number>(state.numQuestions || 10);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // Fetch polyatomic choices when level changes
-    const fetchPolyatomicChoices = async () => {
-      try {
-        const choices = await api.getPolyatomicChoices(polyatomicLevel);
-        updateSettings({ polyatomicChoices: choices });
-      } catch (err) {
-        console.error('Failed to fetch polyatomic choices:', err);
-      }
-    };
+    api.getTableOfContents().then((cats) => setCategories(cats)).catch(() => {});
+  }, []);
 
-    fetchPolyatomicChoices();
-  }, [polyatomicLevel]);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     const selectedReactionTypes: string[] = [];
     if (reactionTypes.synthesis) selectedReactionTypes.push('synthesis');
     if (reactionTypes.decomposition) selectedReactionTypes.push('decomposition');
@@ -44,114 +39,156 @@ const Settings = () => {
     if (reactionTypes.singleReplacement) selectedReactionTypes.push('single replacement');
     if (reactionTypes.doubleReplacement) selectedReactionTypes.push('double replacement');
 
+    const matchedCat = categories.find((c) => c.id === selectedUnit);
+    const randomQuestionIds = matchedCat ? matchedCat.questionIds : [];
+
+    let polyChoices = state.settings.polyatomicChoices;
+    try {
+      polyChoices = await api.getPolyatomicChoices(polyatomicLevel);
+    } catch {}
+
     updateSettings({
       reactionTypes: selectedReactionTypes,
       polyatomicLevel,
-      unit,
+      unit: selectedUnit,
+      randomQuestionIds,
+      polyatomicChoices: polyChoices,
     });
+    setNumQuestions(batchCount);
 
-    navigate('/');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-bg-primary">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
       <Header />
-      <div className="flex flex-col items-center justify-center p-8">
-        <div className="max-w-2xl w-full bg-highlight p-8 rounded">
-          <h1 className="text-3xl mb-6 text-text-primary font-sans">Settings</h1>
 
-        <div className="mb-6 bg-bg-primary p-6 rounded">
-          <h2 className="text-xl mb-4 text-text-primary font-sans font-bold">Reaction Types</h2>
-          <Checkbox
-            label="Synthesis"
-            checked={reactionTypes.synthesis}
-            onChange={(checked) => setReactionTypes({ ...reactionTypes, synthesis: checked })}
-          />
-          <Checkbox
-            label="Decomposition"
-            checked={reactionTypes.decomposition}
-            onChange={(checked) => setReactionTypes({ ...reactionTypes, decomposition: checked })}
-          />
-          <Checkbox
-            label="Combustion"
-            checked={reactionTypes.combustion}
-            onChange={(checked) => setReactionTypes({ ...reactionTypes, combustion: checked })}
-          />
-          <Checkbox
-            label="Single Replacement"
-            checked={reactionTypes.singleReplacement}
-            onChange={(checked) => setReactionTypes({ ...reactionTypes, singleReplacement: checked })}
-          />
-          <Checkbox
-            label="Double Replacement"
-            checked={reactionTypes.doubleReplacement}
-            onChange={(checked) => setReactionTypes({ ...reactionTypes, doubleReplacement: checked })}
-          />
+      <main className={`flex-1 ${styles.container}`}>
+        <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+          <div>
+            <h1 className={styles.heading}>Settings</h1>
+            <p className={styles.subheading}>Customize problem generation parameters</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {saved && <span className="text-xs text-emerald-400 font-mono font-medium">[Saved]</span>}
+            <Button label="Save Changes" onClick={handleSave} variant="primary" />
+          </div>
         </div>
 
-        <div className="mb-6 bg-bg-primary p-6 rounded">
-          <h2 className="text-xl mb-4 text-text-primary font-sans font-bold">Polyatomic Ions</h2>
-          <RadioButton
-            label="All"
-            value={2}
-            checked={polyatomicLevel === 2}
-            onChange={(val) => setPolyatomicLevel(val as number)}
-            name="polyatomic"
-          />
-          <RadioButton
-            label="Difficult"
-            value={0}
-            checked={polyatomicLevel === 0}
-            onChange={(val) => setPolyatomicLevel(val as number)}
-            name="polyatomic"
-          />
-          <RadioButton
-            label="-Ates and -Ites"
-            value={1}
-            checked={polyatomicLevel === 1}
-            onChange={(val) => setPolyatomicLevel(val as number)}
-            name="polyatomic"
-          />
-        </div>
+        <div className="space-y-4">
+          {/* Reaction Types */}
+          <div className={styles.cardSm}>
+            <h2 className={`${styles.sectionTitle} mb-3`}>
+              Reaction Types (for equation problems)
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+              <Checkbox
+                label="Synthesis"
+                checked={reactionTypes.synthesis}
+                onChange={(checked) => setReactionTypes({ ...reactionTypes, synthesis: checked })}
+              />
+              <Checkbox
+                label="Decomposition"
+                checked={reactionTypes.decomposition}
+                onChange={(checked) => setReactionTypes({ ...reactionTypes, decomposition: checked })}
+              />
+              <Checkbox
+                label="Combustion"
+                checked={reactionTypes.combustion}
+                onChange={(checked) => setReactionTypes({ ...reactionTypes, combustion: checked })}
+              />
+              <Checkbox
+                label="Single Replacement"
+                checked={reactionTypes.singleReplacement}
+                onChange={(checked) => setReactionTypes({ ...reactionTypes, singleReplacement: checked })}
+              />
+              <Checkbox
+                label="Double Replacement"
+                checked={reactionTypes.doubleReplacement}
+                onChange={(checked) => setReactionTypes({ ...reactionTypes, doubleReplacement: checked })}
+              />
+            </div>
+          </div>
 
-        <div className="mb-6 bg-bg-primary p-6 rounded">
-          <h2 className="text-xl mb-4 text-text-primary font-sans font-bold">Study Unit</h2>
-          {[
-            { id: 0, name: 'All' },
-            { id: 1, name: 'Math Review' },
-            { id: 2, name: 'Chemical Nomenclature' },
-            { id: 3, name: 'Chemical Quantities' },
-            { id: 4, name: 'Chemical Reactions' },
-            { id: 5, name: 'Stoichiometry' },
-            { id: 6, name: 'Thermochemistry' },
-            { id: 7, name: 'Semester One' },
-            { id: 8, name: 'Gas Laws' },
-            { id: 9, name: 'Electron Configuration' },
-            { id: 10, name: 'Periodic Trends and Bonds' },
-            { id: 11, name: 'Solutions' },
-            { id: 12, name: 'Rates' },
-            { id: 13, name: 'Equilibrium' },
-            { id: 14, name: 'Thermodynamics' },
-            { id: 15, name: 'Acid-Base' },
-            { id: 16, name: 'Electrochemistry' },
-            { id: 17, name: 'Nuclear Chemistry' },
-          ].map((unitOption) => (
-            <RadioButton
-              key={unitOption.id}
-              label={unitOption.name}
-              value={unitOption.id}
-              checked={unit === unitOption.id}
-              onChange={(val) => setUnit(val as number)}
-              name="unit"
-            />
-          ))}
-        </div>
+          {/* Polyatomic Ion Scope */}
+          <div className={styles.cardSm}>
+            <h2 className={`${styles.sectionTitle} mb-3`}>
+              Polyatomic Ion Set
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <RadioButton
+                label="All (46 ions)"
+                value={2}
+                checked={polyatomicLevel === 2}
+                onChange={(val) => setPolyatomicLevel(val as number)}
+                name="polyatomic"
+              />
+              <RadioButton
+                label="-Ates & -Ites (38 ions)"
+                value={1}
+                checked={polyatomicLevel === 1}
+                onChange={(val) => setPolyatomicLevel(val as number)}
+                name="polyatomic"
+              />
+              <RadioButton
+                label="Difficult (13 ions)"
+                value={0}
+                checked={polyatomicLevel === 0}
+                onChange={(val) => setPolyatomicLevel(val as number)}
+                name="polyatomic"
+              />
+            </div>
+          </div>
 
-        <div className="flex justify-center">
-          <Button label="Save Changes" onClick={handleSave} />
+          {/* Batch Test Count */}
+          <div className={styles.cardSm}>
+            <h2 className={`${styles.sectionTitle} mb-3`}>
+              Test Worksheet Size
+            </h2>
+            <div className="flex items-center gap-3">
+              {[5, 10, 15, 20].map((cnt) => (
+                <button
+                  key={cnt}
+                  type="button"
+                  onClick={() => setBatchCount(cnt)}
+                  className={`px-3 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
+                    batchCount === cnt
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {cnt} Questions
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Target Study Unit */}
+          <div className={styles.cardSm}>
+            <h2 className={`${styles.sectionTitle} mb-3`}>
+              Default Study Unit Filter
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-64 overflow-y-auto pr-2">
+              {categories.map((cat) => (
+                <RadioButton
+                  key={cat.id}
+                  label={`${cat.name} (${cat.questionIds.length})`}
+                  value={cat.id}
+                  checked={selectedUnit === cat.id}
+                  onChange={(val) => setSelectedUnit(val as number)}
+                  name="unit"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+            <Button label="Return to Practice" onClick={() => navigate('/')} variant="secondary" />
+            <Button label="Save & Apply" onClick={handleSave} variant="primary" />
+          </div>
         </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

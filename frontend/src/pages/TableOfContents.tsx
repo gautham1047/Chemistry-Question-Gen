@@ -3,9 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import api from '../api/apiClient';
 import type { Category } from '../types';
-import { Header } from '../components/Header';
-import ErrorMessage from '../components/ErrorMessage';
-import { styles } from '../styles/theme';
+import {
+  PageContainer,
+  PageHeader,
+  Card,
+  Badge,
+  LoadingState,
+  ErrorMessage,
+} from '../components';
 
 const TableOfContents = () => {
   const navigate = useNavigate();
@@ -58,73 +63,65 @@ const TableOfContents = () => {
     .filter((cat) => cat.questionIds.length > 0);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
-      <Header />
-
-      <main className={`flex-1 ${styles.containerWide}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
-          <div>
-            <h1 className={styles.heading}>Curriculum Index</h1>
-            <p className={styles.subheading}>
-              Click any problem topic to launch focused practice
-            </p>
-          </div>
+    <PageContainer wide>
+      <PageHeader
+        title="Curriculum Index"
+        subtitle="Click any problem topic to launch focused practice"
+        actions={
           <div className="w-full sm:w-72">
             <input
               type="text"
               placeholder="Filter topics by name or ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className={styles.input}
+              className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
             />
           </div>
+        }
+      />
+
+      {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
+
+      {loading ? (
+        <LoadingState message="Loading topics..." />
+      ) : (
+        <div className="space-y-6">
+          {filteredCategories.map((cat) => (
+            <Card key={cat.id} variant="sm">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
+                  {cat.name}
+                </span>
+                <span className="text-xs text-slate-400 font-mono">
+                  {cat.questionIds.length} topics
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {cat.questionIds.map((qid) => (
+                  <button
+                    key={qid}
+                    onClick={() => handleSelectProblem(qid)}
+                    className="flex items-center gap-2.5 p-2 bg-slate-900/60 hover:bg-slate-700/80 border border-slate-700 text-left transition-colors cursor-pointer group"
+                  >
+                    <Badge variant="cyan">#{qid}</Badge>
+                    <span className="text-xs text-slate-300 group-hover:text-slate-100 truncate">
+                      {getProblemTitle(qid)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          ))}
+
+          {filteredCategories.length === 0 && (
+            <div className="text-center py-12 text-slate-500 text-sm">
+              No matching topics found for "{search}".
+            </div>
+          )}
         </div>
-
-        {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
-
-        {loading ? (
-          <div className={`${styles.card} text-center text-slate-400 py-16`}>
-            <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent animate-spin mx-auto mb-3" />
-            <p className="text-sm font-medium">Loading topics...</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {filteredCategories.map((cat) => (
-              <div key={cat.id} className={styles.cardSm}>
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700">
-                  <span className={styles.sectionTitle}>{cat.name}</span>
-                  <span className="text-xs text-slate-400 font-mono">
-                    {cat.questionIds.length} topics
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {cat.questionIds.map((qid) => (
-                    <button
-                      key={qid}
-                      onClick={() => handleSelectProblem(qid)}
-                      className="flex items-center gap-2.5 p-2 bg-slate-900/60 hover:bg-slate-700/80 border border-slate-700 text-left transition-colors cursor-pointer group"
-                    >
-                      <span className="font-mono text-xs text-cyan-400 bg-cyan-950/70 border border-cyan-800/40 px-1.5 py-0.5 flex-shrink-0">
-                        #{qid}
-                      </span>
-                      <span className="text-xs text-slate-300 group-hover:text-slate-100 truncate">
-                        {getProblemTitle(qid)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {filteredCategories.length === 0 && (
-              <div className="text-center py-12 text-slate-500 text-sm">
-                No matching topics found for "{search}".
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+      )}
+    </PageContainer>
   );
 };
 

@@ -14,7 +14,7 @@ export const Header = () => {
     <header className="w-full bg-slate-900 border-b border-slate-800 px-6 py-3 sticky top-0 z-30">
       <div className="max-w-6xl w-full mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-1.5 font-bold tracking-tight text-slate-100 hover:text-cyan-400 transition-colors text-base">
-          <span className="text-cyan-400">CHEM</span>GEN
+          <span className="text-cyan-400">CHEM</span>QUIZ
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           {navItems.map((item) => {

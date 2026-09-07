@@ -1,4 +1,8 @@
-import json, csv
+import json, csv, os
+
+# Resolve data files relative to this module so they load regardless of the
+# process working directory (Vercel serverless functions run from /var/task).
+_HERE = os.path.dirname(os.path.abspath(__file__))
 
 prefixes = {
     "f" : -15,
@@ -48,7 +52,7 @@ prefixNumbers = {
 
 units = ["m", "g", "s"]
 
-with open('data/periodicTable.csv') as csv_file:
+with open(_HERE + '/data/periodicTable.csv') as csv_file:
     csv_reader = csv.reader(csv_file)
     elements = ["n/a"]
     neutronList = ["n/a"]
@@ -102,44 +106,44 @@ tmcharges = {
     "Pb" : [2,4]
 }
 
-with open('data/acidNames.csv', 'r') as file:
+with open(_HERE + '/data/acidNames.csv', 'r') as file:
     f = csv.reader(file)
     acidNames = {}
     for line in f:
         acidNames.update({line[0]: line[1]})
 
-with open('data/ionNames.csv', 'r') as file:
+with open(_HERE + '/data/ionNames.csv', 'r') as file:
     f = csv.reader(file)
     ionNames = {}
     for line in f:
         ionNames.update({line[0]: line[1]})
 
-with open('data/tmNames.csv', 'r') as file:
+with open(_HERE + '/data/tmNames.csv', 'r') as file:
     f = csv.reader(file)
     tmNames = {}
     for line in f:
         tmNames.update({line[0]: line[1]})
 
-with open('data/polyatomicIons.csv', 'r') as file:
+with open(_HERE + '/data/polyatomicIons.csv', 'r') as file:
     f = csv.reader(file)
     polyatomicIons = {}
     for line in f:
         polyatomicIons.update({line[0]: line[1]})
 
-with open('data/polyatomicIons.csv', 'r') as file:
+with open(_HERE + '/data/polyatomicIons.csv', 'r') as file:
     f = csv.reader(file)
     polyatomicCharges = {}
     for line in f:
         value = line[1].split(" ")
         polyatomicCharges.update({value[0]: value[1]})
 
-with open('data/specificHeat.csv', 'r') as file:
+with open(_HERE + '/data/specificHeat.csv', 'r') as file:
     f = csv.reader(file)
     specificHeats = {}
     for line in f:
         specificHeats.update({line[0]: float(line[1])})
 
-with open('data/heatOfPhysicalChangeGas.csv') as csv_file:
+with open(_HERE + '/data/heatOfPhysicalChangeGas.csv') as csv_file:
     csv_reader = csv.reader(csv_file)
     next(csv_reader)
     heatOfPhysicalChangesGas = {}
@@ -147,7 +151,7 @@ with open('data/heatOfPhysicalChangeGas.csv') as csv_file:
         if line[1] == "H2O": heatOfPhysicalChangesGas.update({"H2O": [0,100, 6.01, 40.7, 2.1, 4.18, 1.7]})
         else: heatOfPhysicalChangesGas.update({line[1]: [float(line[2]) - 273.2, float(line[3]) - 273.2, float(line[4]), float(line[5]), float(line[6]), float(line[7]), float(line[8])]})
 
-with open('data/heatOfPhysicalChangeLiquid.csv') as csv_file:
+with open(_HERE + '/data/heatOfPhysicalChangeLiquid.csv') as csv_file:
     csv_reader = csv.reader(csv_file)
     next(csv_reader)
     heatOfPhysicalChangesLiquid = {}
@@ -157,20 +161,20 @@ with open('data/heatOfPhysicalChangeLiquid.csv') as csv_file:
 
 heatOfPhysicalChanges = {**heatOfPhysicalChangesGas, **heatOfPhysicalChangesLiquid}
 
-with open("data/heatOfFormationSmall.json") as f:
+with open(_HERE + "/data/heatOfFormationSmall.json") as f:
     heatOfFormationsSmall = json.load(f)
 
-with open("data/heatOfFormationLarge.json", "r") as f:
+with open(_HERE + "/data/heatOfFormationLarge.json", "r") as f:
     heatOfFormationsLarge = json.load(f)
 
-with open('data/liquids.csv', 'r') as f:
+with open(_HERE + '/data/liquids.csv', 'r') as f:
     file = csv.reader(f)
     next(file)
     liquidDensitys = {}
     for line in file:
         liquidDensitys.update({line[0] : float(line[2])})
 
-with open("data/periodicTable.csv") as file:
+with open(_HERE + "/data/periodicTable.csv") as file:
     f = csv.reader(file)
     next(f)
     ENDict = {}
@@ -178,14 +182,14 @@ with open("data/periodicTable.csv") as file:
         if (line[17]):
             ENDict.update({line[2]:round(float(line[17]), 1)})
 
-with open("data/bondEnergies.csv") as f:
+with open(_HERE + "/data/bondEnergies.csv") as f:
     file = csv.reader(f)
     next(file)
     bondEnergies = {}
     for line in file:
         bondEnergies.update({line[0]: int(line[1])})
 
-with open("data/typeOfBond.csv") as f:
+with open(_HERE + "/data/typeOfBond.csv") as f:
     file = csv.reader(f)
     next(file)
     bondTypeDict = {}
@@ -201,7 +205,7 @@ electronegativities = {"H" : 2.2, "Li" : 1.0, "Na" : .9, "K" : .8, "Rb" : .8, "C
                 "F" : 4.0, "Cl" : 3.2, "Br" : 2.9, "I" : 2.7, "At" : 2.2,
                 "He" : 0, "Ne" : 0, "Ar" : 0, "Kr" : 0, "Xe" : 0, "Rn" : 0}
 
-with open("data/solubilities.csv") as f:
+with open(_HERE + "/data/solubilities.csv") as f:
     file = csv.reader(f)
     next(file)
     solubilities = {}
@@ -211,7 +215,7 @@ with open("data/solubilities.csv") as f:
 bpElevationConstants = {"H2O" : .512, "C2H6O" : 1.19, "C6H6" : 2.53, "C6H12" : 2.79, "C2H4O2" : 3.07, "C6H6O" : 3.56, "C6H5NO2" : 5.24, "C10H16O" : 5.95}
 fpDepressionConstants = {"H2O" : 1.86, "C2H4O2" : 3.9, "C6H6" : 5.12, "C6H5NO2" : 7, "C6H6O" : 7.4, "C6H12" : 20.2, "C10H16O" : 37.7}
 
-with open("data/miscBpsAndFps.csv") as f:
+with open(_HERE + "/data/miscBpsAndFps.csv") as f:
     file = csv.reader(f)
     next(file)
     miscBps = {}
@@ -240,14 +244,14 @@ class thermCompound:
     def __hash__(self) -> int:
         return hash((self.eq, self.phase))
 
-with open("data/thermoData.csv") as f:
+with open(_HERE + "/data/thermoData.csv") as f:
     file = csv.reader(f)
     next(file)
     thermoData = {}
     for line in file:
         thermoData.update({thermCompound(line[0]) : [float(line[1]), float(line[2]), float(line[3])]})
 
-with open("data/KaTable.csv") as f:
+with open(_HERE + "/data/KaTable.csv") as f:
     file = csv.reader(f)
     next(file)
     KaDict = {}
@@ -256,7 +260,7 @@ with open("data/KaTable.csv") as f:
         else: value = "LARGE"
         KaDict.update({line[0] : value})
 
-with open("data/KbTable.csv") as f:
+with open(_HERE + "/data/KbTable.csv") as f:
     file = csv.reader(f)
     next(file)
     KbDict = {}
@@ -265,7 +269,7 @@ with open("data/KbTable.csv") as f:
         else: value = "LARGE"
         KbDict.update({line[0] : value})
 
-with open("data/KspTable.csv") as f:
+with open(_HERE + "/data/KspTable.csv") as f:
     file = csv.reader(f)
     next(file)
     KspDict = {}

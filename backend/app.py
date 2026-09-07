@@ -8,7 +8,10 @@ from src.problems._helpers import polyatomic_ion_test
 from chemData import polyatomicIons
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}})
+# In production the frontend is served from the same origin as the API, so CORS
+# is not strictly required. Local dev uses the Vite proxy (also same-origin).
+# Allowing all origins on /api/* keeps both paths working without extra config.
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 
 def get_polyatomic_choice_list(n):
